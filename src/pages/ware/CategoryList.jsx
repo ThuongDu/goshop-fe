@@ -46,10 +46,6 @@ const CategoryListByWarehouse = () => {
 
   return (
     <div className="w-full text-sm">
-      <div className="max-h-20 bg-white">
-        <h1 className="text-2xl font-bold text-blue-800 py-5 px-5">Danh sách danh mục</h1>
-      </div>
-
       <div className="mx-5 mt-5 p-6 bg-white rounded-lg shadow-md">
         <table className="w-full table-fixed">
           <thead>

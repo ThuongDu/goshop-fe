@@ -1,84 +1,245 @@
 import React, { useState, useEffect } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import {
+  FiShoppingBag, FiTruck, FiPackage, FiChevronDown, FiChevronRight,
+  FiUser, FiLogOut, FiShoppingCart
+} from 'react-icons/fi';
+import { HiOutlineChartBar } from 'react-icons/hi';
 
 const HomeStaff = () => {
-  const [openMenu, setOpenMenu] = useState('');
+  const [openMenus, setOpenMenus] = useState({});
+  const [user, setUser] = useState(null);
+  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!user || user.role !== "staff") {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    if (!userData || userData.role !== "staff") {
       alert("Bạn không có quyền truy cập trang này!");
       navigate("/");
+    } else {
+      setUser(userData);
     }
   }, [navigate]);
 
+  const isParentActive = (basePath) => {
+    return location.pathname.includes(`/HomeStaff/${basePath}`);
+  };
+
   const toggleMenu = (menu) => {
-    setOpenMenu(openMenu === menu ? '' : menu);
+    setOpenMenus(prev => ({
+      ...prev,
+      [menu]: !prev[menu]
+    }));
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/');
   };
 
   return (
-    <div className="flex h-screen">
-      <div className="w-72 bg-white text-blue-800 p-4 space-y-4 font-bold">
-        <h2 className="text-2xl mb-4">GoShop Staff 👨‍💼</h2>
-        <nav className="space-y-2">
-          <Link to="Revenue/Overview" className="block p-2 rounded hover:bg-blue-400 hover:text-white">📊 Tổng quan</Link>
+    <div className="flex h-screen bg-gray-50 font-sans">
+      {/* Sidebar */}
+      <div className="w-64 bg-white text-gray-800 p-4 shadow-lg border-r border-gray-200 flex flex-col">
+        <div className="flex items-center p-4 mb-4 border-b border-gray-100">
+          <FiShoppingBag className="text-2xl text-blue-600 mr-2" />
+          <h1 className="text-xl font-bold text-gray-800">GoShop Staff</h1>
+        </div>
 
-          <div>
-            <button onClick={() => toggleMenu('product')} className="w-full text-left p-2 rounded hover:bg-blue-400 hover:text-white">🛍 Sản phẩm</button>
-            {openMenu === 'product' && (
-              <div className="ml-4 space-y-1 text-sm font-normal">
-                <Link to="Product/list" className="block p-2 rounded hover:bg-blue-200">Danh sách sản phẩm</Link>
-              </div>
-            )}
-          </div>
+        <nav className="flex-1 space-y-1 overflow-y-auto">
+          {/* Dashboard */}
+          <NavLink
+            to="Revenue/Overview"
+            className={({ isActive }) => `
+              flex items-center p-3 rounded-lg transition-all
+              ${isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}
+            `}
+          >
+            <HiOutlineChartBar className="mr-3 text-lg" />
+            <span>Tổng quan</span>
+          </NavLink>
 
-          <div>
-            <button onClick={() => toggleMenu('orders')} className="w-full text-left p-2 rounded hover:bg-blue-400 hover:text-white">🧾 Đơn hàng</button>
-            {openMenu === 'orders' && (
-              <div className="ml-4 space-y-1 text-sm font-normal">
-                <Link to="Orders/list" className="block p-2 rounded hover:bg-blue-200">Danh sách đơn hàng</Link>
-                <Link to="Orders/add" className="block p-2 rounded hover:bg-blue-200">Tạo đơn hàng</Link>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <button onClick={() => toggleMenu('warehouse')} className="w-full text-left p-2 rounded hover:bg-blue-400 hover:text-white">📦 Kho</button>
-            {openMenu === 'warehouse' && (
-              <div className="ml-4 space-y-1 text-sm font-normal">
-                <Link to="Quantity/add" className="block p-2 rounded hover:bg-blue-200">Nhập kho</Link>
-                <Link to="Quantity/list" className="block p-2 rounded hover:bg-blue-200">Sản phẩm tồn kho</Link>
-              </div>
-            )}
-          </div>
-          <div>
-            <button onClick={() => toggleMenu('warehouse')} className="w-full text-left p-2 rounded hover:bg-blue-400 hover:text-white">Customer</button>
-            {openMenu === 'warehouse' && (
-              <div className="ml-4 space-y-1 text-sm font-normal">
-                <Link to="Customer/list" className="block p-2 rounded hover:bg-blue-200">Danh sách khách hàng</Link>
-                <Link to="Customer/add" className="block p-2 rounded hover:bg-blue-200">Thêm khách hàng</Link>
-              </div>
-            )}
-          </div>
-          <div>
+          {/* Orders */}
+          <div className={`rounded-lg ${isParentActive('Orders') ? 'bg-blue-50' : ''}`}>
             <button
-              onClick={handleLogout}
-              className="w-full text-left p-2 rounded hover:bg-red-300 hover:text-white"
+              onClick={() => toggleMenu('orders')}
+              className={`
+                flex items-center justify-between w-full p-3 rounded-lg transition-colors
+                ${isParentActive('Orders') ? 'text-blue-700 font-medium' : 'hover:bg-gray-100'}
+              `}
             >
-              Đăng xuất
+              <div className="flex items-center">
+                <FiShoppingCart className="mr-3 text-lg" />
+                <span>Đơn hàng</span>
+              </div>
+              {openMenus.orders || isParentActive('Orders') ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
             </button>
+
+            {(openMenus.orders || isParentActive('Orders')) && (
+              <div className="ml-8 mt-1 space-y-1">
+                <NavLink
+                  to="Orders/list"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Danh sách đơn hàng
+                </NavLink>
+                <NavLink
+                  to="Orders/add"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Tạo đơn hàng
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* Products */}
+          <div className={`rounded-lg ${isParentActive('Product') ? 'bg-blue-50' : ''}`}>
+            <button
+              onClick={() => toggleMenu('products')}
+              className={`
+                flex items-center justify-between w-full p-3 rounded-lg transition-colors
+                ${isParentActive('Product') ? 'text-blue-700 font-medium' : 'hover:bg-gray-100'}
+              `}
+            >
+              <div className="flex items-center">
+                <FiPackage className="mr-3 text-lg" />
+                <span>Sản phẩm</span>
+              </div>
+              {openMenus.products || isParentActive('Product') ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
+            </button>
+
+            {(openMenus.products || isParentActive('Product')) && (
+              <div className="ml-8 mt-1 space-y-1">
+                <NavLink
+                  to="Product/list"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Danh sách sản phẩm
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* Warehouse */}
+          <div className={`rounded-lg ${isParentActive('Quantity') ? 'bg-blue-50' : ''}`}>
+            <button
+              onClick={() => toggleMenu('warehouse')}
+              className={`
+                flex items-center justify-between w-full p-3 rounded-lg transition-colors
+                ${isParentActive('Quantity') ? 'text-blue-700 font-medium' : 'hover:bg-gray-100'}
+              `}
+            >
+              <div className="flex items-center">
+                <FiTruck className="mr-3 text-lg" />
+                <span>Kho hàng</span>
+              </div>
+              {openMenus.warehouse || isParentActive('Quantity') ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
+            </button>
+
+            {(openMenus.warehouse || isParentActive('Quantity')) && (
+              <div className="ml-8 mt-1 space-y-1">
+                <NavLink
+                  to="Quantity/add"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Nhập kho
+                </NavLink>
+                <NavLink
+                  to="Quantity/list"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Sản phẩm tồn kho
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* Customers */}
+          <div className={`rounded-lg ${isParentActive('Customer') ? 'bg-blue-50' : ''}`}>
+            <button
+              onClick={() => toggleMenu('customers')}
+              className={`
+                flex items-center justify-between w-full p-3 rounded-lg transition-colors
+                ${isParentActive('Customer') ? 'text-blue-700 font-medium' : 'hover:bg-gray-100'}
+              `}
+            >
+              <div className="flex items-center">
+                <FiUser className="mr-3 text-lg" />
+                <span>Khách hàng</span>
+              </div>
+              {openMenus.customers || isParentActive('Customer') ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
+            </button>
+
+            {(openMenus.customers || isParentActive('Customer')) && (
+              <div className="ml-8 mt-1 space-y-1">
+                <NavLink
+                  to="Customer/list"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Danh sách khách hàng
+                </NavLink>
+                <NavLink
+                  to="Customer/add"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Thêm khách hàng
+                </NavLink>
+              </div>
+            )}
           </div>
         </nav>
+
+        {/* Logout button */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center w-full p-3 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors mt-auto mb-4"
+        >
+          <FiLogOut className="mr-3 text-lg" />
+          <span>Đăng xuất</span>
+        </button>
       </div>
-      <div className="bg-gray-100 w-full overflow-auto">
-        <Outlet />
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white shadow-sm p-4 flex justify-end items-center">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <FiUser className="text-blue-600" />
+              </div>
+              <span className="ml-2 text-sm font-medium">
+                {user ? user.name : 'Staff'}
+              </span>
+            </div>
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

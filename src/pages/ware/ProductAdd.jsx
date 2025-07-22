@@ -2,7 +2,16 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 const ProductAdd = () => {
-  const [form, setForm] = useState({ name: '', price: '', image: null });
+  const [form, setForm] = useState({ 
+    name: '', 
+    price: '', 
+    description: '',
+    weight: '',
+    unit: '',
+    sale_price: '',
+    expiry_date: '',
+    image: null 
+  });
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -16,7 +25,7 @@ const ProductAdd = () => {
     setSuccess('');
 
     if (!form.name || !form.price || !form.image) {
-      setError('Vui lòng nhập đầy đủ thông tin và chọn ảnh');
+      setError('Vui lòng nhập tên sản phẩm, giá và chọn ảnh');
       return;
     }
 
@@ -25,6 +34,11 @@ const ProductAdd = () => {
       const formData = new FormData();
       formData.append('name', form.name);
       formData.append('price', form.price);
+      formData.append('description', form.description);
+      formData.append('weight', form.weight);
+      formData.append('unit', form.unit);
+      formData.append('sale_price', form.sale_price || '0'); // Đảm bảo luôn có giá trị
+      formData.append('expiry_date', form.expiry_date);
       formData.append('created_by', userId);
       formData.append('updated_by', userId);
       formData.append('image', form.image);
@@ -37,21 +51,40 @@ const ProductAdd = () => {
       });
 
       setSuccess('Thêm sản phẩm thành công!');
-      setForm({ name: '', price: '', image: null });
+      setForm({ 
+        name: '', 
+        price: '', 
+        description: '',
+        weight: '',
+        unit: '',
+        sale_price: '',
+        expiry_date: '',
+        image: null 
+      });
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Lỗi thêm sản phẩm:', err);
-      setError('Lỗi thêm sản phẩm');
+      setError(err.response?.data?.message || 'Lỗi thêm sản phẩm');
     } finally {
       setUploading(false);
     }
   };
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Hàm định dạng tiền tệ
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('vi-VN', { 
+      style: 'currency', 
+      currency: 'VND' 
+    }).format(value);
+  };
+
   return (
     <div className="w-full text-sm">
-      <div className="max-h-20 bg-white">
-        <h1 className="text-2xl font-bold text-blue-800 py-5">Thêm sản phẩm</h1>
-      </div>
 
       <div className="flex mx-5 my-5 gap-4">
         <div className="w-full bg-white p-6 rounded-lg shadow-md">
@@ -59,46 +92,123 @@ const ProductAdd = () => {
           {success && <p className="text-green-500 mb-4">{success}</p>}
 
           <form onSubmit={handleSubmit}>
-            <table className="w-full table-fixed">
-              <thead>
-                <tr className="bg-blue-800 text-white text-left border-b border-gray-300">
-                  <th className="px-2 py-1 w-[33%]">Tên sản phẩm</th>
-                  <th className="px-2 py-1 w-[33%]">Giá</th>
-                  <th className="px-2 py-1 w-[34%]">Hình ảnh</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-t border-gray-300">
-                  <td className="px-1 py-1">
-                    <input
-                      type="text"
-                      placeholder="Nhập tên sản phẩm"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                    />
-                  </td>
-                  <td className="px-1 py-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Cột 1 */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 mb-1">Tên sản phẩm *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Nhập tên sản phẩm"
+                    value={form.name}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Giá bán *</label>
+                  <input
+                    type="number"
+                    name="price"
+                    placeholder="Nhập giá bán"
+                    value={form.price}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    required
+                    min="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Giá khuyến mãi</label>
+                  <input
+                    type="number"
+                    name="sale_price"
+                    placeholder="Nhập giá khuyến mãi"
+                    value={form.sale_price}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    min="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Hình ảnh *</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setForm({ ...form, image: e.target.files[0] })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Cột 2 */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 mb-1">Mô tả</label>
+                  <textarea
+                    name="description"
+                    placeholder="Nhập mô tả sản phẩm"
+                    value={form.description}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md h-24"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 mb-1">Trọng lượng</label>
                     <input
                       type="number"
-                      placeholder="Nhập giá"
-                      value={form.price}
-                      onChange={(e) => setForm({ ...form, price: e.target.value })}
+                      name="weight"
+                      placeholder="0.00"
+                      value={form.weight}
+                      onChange={handleChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                      step="0.01"
+                      min="0"
                     />
-                  </td>
-                  <td className="px-1 py-1">
-                    <input
-                      type="file"
-                      onChange={(e) => setForm({ ...form, image: e.target.files[0] })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
 
-            <div className="text-center mt-4">
+                  <div>
+                    <label className="block text-gray-700 mb-1">Đơn vị tính</label>
+                    <select
+                      name="unit"
+                      value={form.unit}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">Chọn đơn vị</option>
+                      <option value="g">Gram (g)</option>
+                      <option value="kg">Kilogram (kg)</option>
+                      <option value="ml">Mililiter (ml)</option>
+                      <option value="l">Liter (l)</option>
+                      <option value="cái">Cái</option>
+                      <option value="hộp">Hộp</option>
+                      <option value="chai">Chai</option>
+                      <option value="túi">Túi</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Hạn sử dụng</label>
+                  <input
+                    type="date"
+                    name="expiry_date"
+                    value={form.expiry_date}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center mt-6">
               <button
                 type="submit"
                 disabled={uploading}

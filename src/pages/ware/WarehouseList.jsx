@@ -62,16 +62,13 @@ useEffect(() => {
         });
         setWarehouses((prev) => prev.filter((warehouse) => warehouse.id !== warehouseId));
       } catch (err) {
-        console.error('Lỗi khi xoá sản phẩm:', err);
-        alert('Xoá sản phẩm thất bại');
+        console.error('Lỗi khi xoá kho:', err);
+        alert('Xoá kho thất bại');
       }
     };
 
   return (
     <div>
-      <div className="max-h-20 bg-white">
-        <h1 className="text-2xl font-bold text-blue-800 py-5">Danh sách kho</h1>    
-      </div>
       <div className="my-5 mx-5 bg-white px-6 py-4 text-sm rounded-lg shadow-md">
         <table className="table-fixed">
           <thead>

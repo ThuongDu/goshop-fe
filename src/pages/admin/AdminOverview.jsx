@@ -1,85 +1,142 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { FaStore, FaWarehouse, FaBoxOpen, FaClipboardList, FaUsers } from "react-icons/fa";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from "recharts";
 
-const AdminOverview = () => {
-  const [stats, setStats] = useState({
-    shops: 0,
-    warehouses: 0,
-    products: 0,
-    orders: 0,
-    staffs: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem('token');
+const AdminStatistics = () => {
+  const [stats, setStats] = useState(null);
+  const [monthlyRevenue, setMonthlyRevenue] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
+  const [revenueByShop, setRevenueByShop] = useState([]);
+  const [revenueByStaff, setRevenueByStaff] = useState([]);
+  const [todayRevenueByStaff, setTodayRevenueByStaff] = useState([]);
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAll = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/admin/stats", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setStats(res.data);
+        const [statsRes, monthlyRes, topRes, shopRes, staffRes, todayStaffRes] = await Promise.all([
+          axios.get("http://localhost:3000/api/statistics", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get("http://localhost:3000/api/statistics/monthly-revenue", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get("http://localhost:3000/api/statistics/top-products", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get("http://localhost:3000/api/statistics/revenue-by-shop", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get("http://localhost:3000/api/statistics/revenue-by-staff", { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get("http://localhost:3000/api/statistics/today-revenue-by-staff", { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        setStats(statsRes.data);
+        setMonthlyRevenue(monthlyRes.data);
+        setTopProducts(topRes.data);
+        setRevenueByShop(shopRes.data);
+        setRevenueByStaff(staffRes.data);
+        setTodayRevenueByStaff(todayStaffRes.data);
       } catch (err) {
-        console.error("Error fetching stats:", err);
-      } finally {
-        setLoading(false);
+        console.error("Lỗi load thống kê:", err);
       }
     };
-    fetchStats();
+    fetchAll();
   }, [token]);
 
-  if (loading) {
-    return <div className="text-center mt-10 text-xl font-semibold">Loading overview...</div>;
-  }
+  if (!stats) return <div className="text-center mt-10 text-lg font-semibold text-gray-600">Đang tải dữ liệu...</div>;
 
   return (
-    <div className="w-full text-sm">
-      <div className="bg-white mb-5">
-        <h1 className="text-3xl font-bold text-blue-800 py-5">Tổng quan</h1>
+    <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl font-bold text-blue-700 mb-2">📊 Thống kê tổng quan</h1>
+
+      {/* Tổng quan */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Tổng đơn" value={stats.total_orders} color="from-blue-500 to-blue-400" />
+        <StatCard label="Tổng doanh thu" value={Number(stats.total_revenue).toLocaleString()} suffix="₫" color="from-green-500 to-green-400" />
+        <StatCard label="Khách hàng" value={stats.total_customers} color="from-purple-500 to-purple-400" />
+        <StatCard label="Sản phẩm đã bán" value={stats.total_items_sold} color="from-pink-500 to-pink-400" />
       </div>
 
-    <div className="px-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <div className="flex flex-col items-center bg-gradient-to-tr from-blue-500 to-blue-700 text-white rounded-2xl p-6 shadow-lg hover:scale-105 transition-transform">
-          <FaStore className="text-5xl mb-2" />
-          <p className="text-4xl font-bold">{stats.shops}</p>
-          <p className="text-base mt-1">Shops</p>
-          <span className="text-xs mt-1 opacity-70">All branches</span>
-        </div>
+      {/* Doanh thu theo tháng */}
+      <SectionCard title="📅 Doanh thu theo tháng">
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={monthlyRevenue}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="revenue" fill="url(#colorRevenue)" radius={[6, 6, 0, 0]} />
+            <defs>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.7} />
+              </linearGradient>
+            </defs>
+          </BarChart>
+        </ResponsiveContainer>
+      </SectionCard>
 
-        <div className="flex flex-col items-center bg-gradient-to-tr from-green-500 to-green-700 text-white rounded-2xl p-6 shadow-lg hover:scale-105 transition-transform">
-          <FaWarehouse className="text-5xl mb-2" />
-          <p className="text-4xl font-bold">{stats.warehouses}</p>
-          <p className="text-base mt-1">Warehouses</p>
-          <span className="text-xs mt-1 opacity-70">Storage units</span>
-        </div>
+      {/* Top sản phẩm */}
+      <SectionCard title="🏆 Top 5 sản phẩm bán chạy">
+        <ItemList data={topProducts} render={p => (
+          <>
+            <span>{p.name} ({p.code})</span>
+            <span className="font-medium text-blue-600">Đã bán: {p.total_sold}</span>
+          </>
+        )} />
+      </SectionCard>
 
-        <div className="flex flex-col items-center bg-gradient-to-tr from-yellow-400 to-yellow-600 text-white rounded-2xl p-6 shadow-lg hover:scale-105 transition-transform">
-          <FaBoxOpen className="text-5xl mb-2" />
-          <p className="text-4xl font-bold">{stats.products}</p>
-          <p className="text-base mt-1">Products</p>
-          <span className="text-xs mt-1 opacity-70">In system</span>
-        </div>
+      {/* Doanh thu theo cửa hàng */}
+      <SectionCard title="🏬 Doanh thu theo cửa hàng">
+        <ItemList data={revenueByShop} render={s => (
+          <>
+            <span>{s.name}</span>
+            <span className="font-medium text-green-600">{Number(s.revenue).toLocaleString()}₫</span>
+          </>
+        )} />
+      </SectionCard>
 
-        <div className="flex flex-col items-center bg-gradient-to-tr from-purple-500 to-purple-700 text-white rounded-2xl p-6 shadow-lg hover:scale-105 transition-transform">
-          <FaClipboardList className="text-5xl mb-2" />
-          <p className="text-4xl font-bold">{stats.orders}</p>
-          <p className="text-base mt-1">Orders</p>
-          <span className="text-xs mt-1 opacity-70">Completed & pending</span>
-        </div>
+      {/* Doanh thu theo nhân viên */}
+      <SectionCard title="👨‍💼 Doanh thu theo nhân viên">
+        <ItemList data={revenueByStaff} render={s => (
+          <>
+            <span>{s.name}</span>
+            <span className="font-medium text-purple-600">{Number(s.revenue).toLocaleString()}₫</span>
+          </>
+        )} />
+      </SectionCard>
 
-        <div className="flex flex-col items-center bg-gradient-to-tr from-pink-500 to-pink-700 text-white rounded-2xl p-6 shadow-lg hover:scale-105 transition-transform">
-          <FaUsers className="text-5xl mb-2" />
-          <p className="text-4xl font-bold">{stats.staffs}</p>
-          <p className="text-base mt-1">Staffs</p>
-          <span className="text-xs mt-1 opacity-70">Active accounts</span>
-        </div>
-      </div>
-    </div>
-      
+      {/* Doanh thu trong ngày theo nhân viên */}
+      <SectionCard title="📅 Doanh thu trong ngày theo nhân viên">
+        <ItemList data={todayRevenueByStaff} emptyText="Chưa có dữ liệu hôm nay." render={s => (
+          <>
+            <span>{s.name}</span>
+            <span className="font-medium text-orange-600">{Number(s.revenue).toLocaleString()}₫</span>
+          </>
+        )} />
+      </SectionCard>
     </div>
   );
 };
 
-export default AdminOverview;
+// Card hiển thị số liệu tổng quan
+const StatCard = ({ label, value, suffix, color }) => (
+  <div className={`p-4 rounded-2xl shadow-md text-center bg-gradient-to-br ${color} text-white`}>
+    <p className="text-2xl font-bold">{value}{suffix && suffix}</p>
+    <p className="text-sm">{label}</p>
+  </div>
+);
+
+// Khung section chung
+const SectionCard = ({ title, children }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-md">
+    <h2 className="text-lg font-semibold mb-3 text-gray-700">{title}</h2>
+    {children}
+  </div>
+);
+
+// Danh sách hiển thị chung
+const ItemList = ({ data, render, emptyText = "Không có dữ liệu" }) => (
+  data.length === 0 ? <p className="text-gray-500">{emptyText}</p> :
+    <ul className="divide-y divide-gray-100">
+      {data.map(item => (
+        <li key={item.id} className="py-2 flex justify-between">{render(item)}</li>
+      ))}
+    </ul>
+);
+
+export default AdminStatistics;

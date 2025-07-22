@@ -71,12 +71,7 @@ const AddProductsToWarehouse = () => {
 
   return (
     <div className="w-full text-sm">
-      {/* Header */}
-      <div className="max-h-20 bg-white">
-        <h1 className="text-2xl font-bold text-blue-800 py-5 px-5">Thêm sản phẩm vào kho</h1>
-      </div>
 
-      {/* Nội dung form */}
       <div className="mx-5 my-5 p-6 bg-white rounded-lg shadow-md">
         {message && (
           <p className={`mb-4 ${message.startsWith('✅') ? 'text-green-500' : 'text-red-500'}`}>
@@ -100,9 +95,7 @@ const AddProductsToWarehouse = () => {
               </select>
             </div>
           </div>
-          {/* Danh sách sản phẩm & danh mục */}
           <div className="flex gap-6">
-            {/* Sản phẩm */}
             <div className="w-1/2">
               <p className="font-bold bg-blue-800 text-white px-3 py-2 rounded-t">Danh sách sản phẩm</p>
               <div className="border border-gray-300 rounded-b max-h-[300px] overflow-y-auto">

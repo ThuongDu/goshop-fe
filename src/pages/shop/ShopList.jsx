@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const ShopList = () => {
   const navigate = useNavigate();
@@ -62,16 +62,28 @@ const ShopList = () => {
   if (error) return <p className="p-4 text-red-600">{error}</p>;
 
   return (
-    <div className="fw-full text-sm">
-      <div className="max-h-20 bg-white">
-        <h1 className="text-2xl font-bold text-blue-800 py-5">Danh sách cửa hàng</h1>
-      </div>
-
+    <div className="w-full text-sm">
       <div className="mx-5 my-5 p-6 bg-white rounded-lg shadow-md">
         {shops.length === 0 ? (
-          <p className="text-left text-gray-600">Chưa có cửa hàng nào.</p>
+          <div className="flex flex-col items-center">
+            <p className="text-gray-600 mb-4">Chưa có cửa hàng nào.</p>
+            <Link 
+              to="/AdminHome/Shop/add" 
+              className="bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 px-4 rounded-lg shadow-md"
+            >
+              + Thêm cửa hàng
+            </Link>
+          </div>
         ) : (
           <div className="overflow-x-auto">
+            <div className="flex justify-end mb-4">
+              <Link 
+                to="/AdminHome/Shop/add" 
+                className="bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 px-4 rounded-lg shadow-md"
+              >
+                + Thêm cửa hàng
+              </Link>
+            </div>
             <table className="w-full table-fixed">
               <thead>
                 <tr className="bg-blue-800 text-white text-left border-b border-gray-200">
@@ -103,7 +115,7 @@ const ShopList = () => {
                     <td className="px-2 py-1">{getStatus(shop.status)}</td>
                     <td className="px-2 py-1">
                       <button
-                        onClick={() => navigate(`/AdminHome/Edit/shop/${shop.id}`)}
+                        onClick={() => navigate(`/AdminHome/Shop/edit/${shop.id}`)}
                         className="text-blue-600 font-semibold px-1"
                         title="Sửa"
                       >

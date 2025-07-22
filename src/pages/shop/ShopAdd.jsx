@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-const ShopAdd = ({ onShopAdded }) => {
+const ShopAdd = () => {
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
@@ -83,10 +85,9 @@ const ShopAdd = ({ onShopAdded }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSuccess('Thêm cửa hàng thành công!');
-      setName(''); setProvince(''); setDistrict(''); setWard('');
-      setAddressDetail(''); setPhone(''); setStatus('active');
-      setTimeout(() => setSuccess(''), 3000);
-      if (onShopAdded) onShopAdded();
+      setTimeout(() => {
+        navigate('/AdminHome/Shop/list');
+      }, 1000);
     } catch (err) {
       console.error('Thêm shop thất bại:', err.response?.data || err.message);
       setError('Lỗi khi thêm cửa hàng');
@@ -95,11 +96,7 @@ const ShopAdd = ({ onShopAdded }) => {
   };
 
   return (
-    <div className="fw-full text-sm">
-      <div className="max-h-20 bg-white">
-        <h1 className="text-2xl font-bold text-blue-800 py-5">Thêm cửa hàng</h1>
-      </div>
-      
+    <div className="w-full text-sm">
       <div className="mx-5 my-5 p-6 bg-white rounded-lg shadow-md">
         {error && <p className="text-red-500 mb-4">{error}</p>}
         {success && <p className="text-green-500 mb-4">{success}</p>}
@@ -171,7 +168,13 @@ const ShopAdd = ({ onShopAdded }) => {
             </tbody>
           </table>
 
-          <div className="text-center mt-3">
+          <div className="flex justify-between mt-3">
+            <button 
+              onClick={() => navigate('/AdminHome/Shop/list')}
+              className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md"
+            >
+              Quay lại
+            </button>
             <button type="submit" disabled={loading}
               className={`bg-blue-800 text-white py-2 px-6 rounded-lg ${loading ? 'opacity-50' : ''}`}>
               {loading ? 'Đang thêm...' : '+ Thêm cửa hàng'}
@@ -182,5 +185,4 @@ const ShopAdd = ({ onShopAdded }) => {
     </div>
   );
 };
-
 export default ShopAdd;

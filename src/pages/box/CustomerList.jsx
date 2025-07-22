@@ -38,9 +38,6 @@ const CustomerList = () => {
 
   return (
     <div className="w-full text-sm">
-      <div className="max-h-20 bg-white">
-        <h1 className="text-2xl font-bold text-blue-800 py-5">Danh sách khách hàng</h1>
-      </div>
 
       <div className="mx-5 my-5 p-6 bg-white rounded-lg shadow-md">
         {error && <p className="text-red-500 mb-3">{error}</p>}
