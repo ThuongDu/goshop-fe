@@ -14,10 +14,10 @@ const OrderList = () => {
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      fetchOrders(); 
+      fetchOrders();
     }, 400);
 
-    return () => clearTimeout(delayDebounce); 
+    return () => clearTimeout(delayDebounce);
   }, [filterStatus, searchKeyword, startDate, endDate, token]);
 
   const fetchOrders = async () => {
@@ -30,7 +30,7 @@ const OrderList = () => {
       setOrders(res.data);
     } catch (err) {
       console.error("Lỗi tải đơn hàng:", err);
-      setError("Không thể tải danh sách đơn hàng");
+      setError("Không thể tải danh sách đơn hàng: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -40,13 +40,10 @@ const OrderList = () => {
     const params = new URLSearchParams();
     if (filterStatus) params.append("status", filterStatus);
     if (searchKeyword) params.append("search", searchKeyword.trim());
-
     if (startDate) params.append("start_date", startDate);
     if (endDate) params.append("end_date", endDate);
-
     return params.toString();
   };
-
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
@@ -55,14 +52,14 @@ const OrderList = () => {
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setOrders(prev =>
-        prev.map(order =>
+      setOrders((prev) =>
+        prev.map((order) =>
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
     } catch (err) {
       console.error("Lỗi cập nhật trạng thái:", err);
-      alert("Cập nhật trạng thái thất bại!");
+      alert("Cập nhật trạng thái thất bại: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -74,7 +71,7 @@ const OrderList = () => {
       <div className="mx-5 mt-4 mb-2 flex flex-wrap items-center gap-2">
         <select
           value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
+          onChange={(e) => setFilterStatus(e.target.value)}
           className="border px-3 py-2 rounded-md text-sm"
         >
           <option value="">-- Lọc theo trạng thái --</option>
@@ -86,21 +83,21 @@ const OrderList = () => {
         <input
           type="text"
           placeholder="Tìm mã đơn, khách hàng, người tạo..."
-          value={searchKeyword || ''} 
-          onChange={e => setSearchKeyword(e.target.value)}
+          value={searchKeyword || ""}
+          onChange={(e) => setSearchKeyword(e.target.value)}
           className="border px-3 py-2 rounded-md relative z-10"
         />
 
         <input
           type="date"
           value={startDate}
-          onChange={e => setStartDate(e.target.value)}
+          onChange={(e) => setStartDate(e.target.value)}
           className="border px-3 py-2 rounded-md"
         />
         <input
           type="date"
           value={endDate}
-          onChange={e => setEndDate(e.target.value)}
+          onChange={(e) => setEndDate(e.target.value)}
           className="border px-3 py-2 rounded-md"
         />
 
@@ -133,7 +130,7 @@ const OrderList = () => {
             </tr>
           </thead>
           <tbody>
-            {orders.map(order => (
+            {orders.map((order) => (
               <tr key={order.id} className="border-t hover:bg-gray-50">
                 <td className="px-3 py-2">
                   <Link
@@ -151,16 +148,16 @@ const OrderList = () => {
                 <td className="px-3 py-2 text-right">
                   {Number(order.tax).toLocaleString()}₫
                 </td>
-                <td className="px-3 py-2">{order.payment_method || ""}</td>
+                <td className="px-3 py-2">
+                  {order.payment_method || "Chưa xác định"}
+                </td>
                 <td className="px-3 py-2">
                   {order.status === "thành công" ? (
                     <span className="capitalize">{order.status}</span>
                   ) : (
                     <select
                       value={order.status}
-                      onChange={e =>
-                        handleStatusChange(order.id, e.target.value)
-                      }
+                      onChange={(e) => handleStatusChange(order.id, e.target.value)}
                       className="border px-2 py-1 rounded text-sm"
                     >
                       <option value={order.status}>{order.status}</option>
@@ -187,9 +184,7 @@ const OrderList = () => {
         </table>
 
         {orders.length === 0 && (
-          <p className="text-center mt-4 text-gray-500">
-            Không có đơn hàng nào
-          </p>
+          <p className="text-center mt-4 text-gray-500">Không có đơn hàng nào</p>
         )}
       </div>
     </div>

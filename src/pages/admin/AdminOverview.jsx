@@ -100,7 +100,6 @@ const AdminStatistics = () => {
         )} />
       </SectionCard>
 
-      {/* Doanh thu trong ngày theo nhân viên */}
       <SectionCard title="📅 Doanh thu trong ngày theo nhân viên">
         <ItemList data={todayRevenueByStaff} emptyText="Chưa có dữ liệu hôm nay." render={s => (
           <>
@@ -113,7 +112,6 @@ const AdminStatistics = () => {
   );
 };
 
-// Card hiển thị số liệu tổng quan
 const StatCard = ({ label, value, suffix, color }) => (
   <div className={`p-4 rounded-2xl shadow-md text-center bg-gradient-to-br ${color} text-white`}>
     <p className="text-2xl font-bold">{value}{suffix && suffix}</p>
@@ -121,7 +119,6 @@ const StatCard = ({ label, value, suffix, color }) => (
   </div>
 );
 
-// Khung section chung
 const SectionCard = ({ title, children }) => (
   <div className="bg-white p-6 rounded-2xl shadow-md">
     <h2 className="text-lg font-semibold mb-3 text-gray-700">{title}</h2>
@@ -129,7 +126,6 @@ const SectionCard = ({ title, children }) => (
   </div>
 );
 
-// Danh sách hiển thị chung
 const ItemList = ({ data, render, emptyText = "Không có dữ liệu" }) => (
   data.length === 0 ? <p className="text-gray-500">{emptyText}</p> :
     <ul className="divide-y divide-gray-100">
