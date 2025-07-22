@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Modal from "react-modal";
+import { saveAs } from "file-saver";
 
 Modal.setAppElement("#root");
 
@@ -20,6 +21,8 @@ const OrderCreate = () => {
   const [paymentMethod, setPaymentMethod] = useState("tiền mặt");
   const [showQR, setShowQR] = useState(false);
   const [qrCodeData, setQrCodeData] = useState("");
+  const [showBillModal, setShowBillModal] = useState(false);
+  const [billDetails, setBillDetails] = useState({ shopName: "", shopAddress: "", orderCode: "" });
 
   const token = localStorage.getItem("token");
 
@@ -33,7 +36,7 @@ const OrderCreate = () => {
         setShops(s.data);
         setCustomers(c.data);
       } catch (e) {
-        console.error(e);
+        console.error("Lỗi tải dữ liệu shops/customers:", e);
       }
     })();
   }, [token]);
@@ -156,6 +159,81 @@ const OrderCreate = () => {
     }
   };
 
+  const generateInvoice = async (orderCode, shopName = "Không có cửa hàng") => {
+    const now = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Ho_Chi_Minh' };
+    const formattedDate = now.toLocaleString('en-US', options).replace(' at ', ' ').replace(':00 ', ' ');
+    const latexContent = `
+\\documentclass[a4paper,12pt]{article}
+\\usepackage[utf8]{vietnam}
+\\usepackage{geometry}
+\\usepackage{array}
+\\usepackage{booktabs}
+\\usepackage{siunitx}
+\\usepackage{fontspec}
+\\setmainfont{Noto Serif}
+
+\\geometry{a4paper, margin=2cm}
+\\begin{document}
+
+\\begin{center}
+  \\textbf{\\Large HÓA ĐƠN BÁN HÀNG} \\\\
+  \\vspace{0.5cm}
+  \\textbf{Cửa hàng:} ${shopName.replace(/[&%$#_{}]/g, "\\$&")} \\\\
+  \\textbf{Mã đơn hàng:} ${orderCode.replace(/[&%$#_{}]/g, "\\$&")} \\\\
+  \\textbf{Ngày:} ${formattedDate} \\\\
+\\end{center}
+
+\\vspace{0.5cm}
+
+\\noindent
+\\textbf{Khách hàng:} ${name.replace(/[&%$#_{}]/g, "\\$&")} \\quad \\textbf{Số điện thoại:} ${phone.replace(/[&%$#_{}]/g, "\\$&")} \\\\
+\\textbf{Phương thức thanh toán:} ${paymentMethod.replace(/[&%$#_{}]/g, "\\$&")} \\\\
+
+\\vspace{0.5cm}
+
+\\begin{tabular}{>{\\raggedright\\arraybackslash}p{5cm} r r r}
+  \\toprule
+  \\textbf{Sản phẩm} & \\textbf{Số lượng} & \\textbf{Đơn giá} & \\textbf{Thành tiền} \\\\
+  \\midrule
+  ${
+    orderItems.length > 0
+      ? orderItems
+          .map(
+            (item) =>
+              `${item.product_name.replace(/[&%$#_{}]/g, "\\$&")} & ${item.quantity} & ${item.price.toLocaleString("vi-VN")} ₫ & ${(item.price * item.quantity).toLocaleString("vi-VN")} ₫ \\\\`
+          )
+          .join("\n  ")
+      : "\\multicolumn{4}{c}{Không có sản phẩm} \\\\"
+  }
+  \\midrule
+  \\multicolumn{3}{r}{\\textbf{Tổng cộng:}} & \\textbf{${total.toLocaleString("vi-VN")} ₫} \\\\
+  \\bottomrule
+\\end{tabular}
+
+\\vspace{1cm}
+
+\\noindent
+\\textbf{Ghi chú:} Hóa đơn được tạo tự động bởi hệ thống. Vui lòng kiểm tra kỹ thông tin.
+
+\\end{document}
+    `;
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/api/generate-invoice",
+        { latexContent, orderCode },
+        { headers: { Authorization: `Bearer ${token}`, responseType: "blob" } }
+      );
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      saveAs(blob, `invoice_${orderCode}.pdf`);
+    } catch (err) {
+      console.error("Lỗi tạo PDF hóa đơn:", err);
+      alert("Không thể tạo PDF hóa đơn. Đang tải file .tex thay thế.");
+      const blob = new Blob([latexContent], { type: "text/plain;charset=utf-8" });
+      saveAs(blob, `invoice_${orderCode}.tex`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!cusId || !selectedShop || !selectedWarehouse || orderItems.length === 0) {
@@ -205,14 +283,15 @@ const OrderCreate = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("Response từ server:", res.data);
-      alert(`✅ Tạo đơn hàng thành công! Mã: ${res.data.code}`);
-      setOrderItems([]);
-      setSelectedShop("");
-      setSelectedWarehouse("");
-      setPhone("");
-      setName("");
-      setCusId(null);
-      setSuggest([]);
+
+      // Fetch shop name and address for invoice
+      const shop = shops.find((s) => s.id === selectedShop);
+      const shopName = shop ? shop.name : "Unknown Shop";
+      const shopAddress = shop && shop.address ? shop.address : "Không có địa chỉ";
+
+      // Set bill details and show modal
+      setBillDetails({ shopName, shopAddress, orderCode: res.data.code });
+      setShowBillModal(true);
     } catch (err) {
       console.error("Lỗi tạo đơn hàng:", err);
       alert(err.response?.data?.message || "Có lỗi khi tạo đơn hàng!");
@@ -242,19 +321,32 @@ const OrderCreate = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("Response từ server sau QR:", res.data);
-      alert(`✅ Thanh toán và tạo đơn hàng thành công! Mã: ${res.data.code}`);
+
+      // Fetch shop name and address for invoice
+      const shop = shops.find((s) => s.id === selectedShop);
+      const shopName = shop ? shop.name : "Unknown Shop";
+      const shopAddress = shop && shop.address ? shop.address : "Không có địa chỉ";
+
+      // Set bill details and show modal
+      setBillDetails({ shopName, shopAddress, orderCode: res.data.code });
+      setShowBillModal(true);
       setShowQR(false);
-      setOrderItems([]);
-      setSelectedShop("");
-      setSelectedWarehouse("");
-      setPhone("");
-      setName("");
-      setCusId(null);
-      setSuggest([]);
     } catch (err) {
       console.error("Lỗi tạo đơn hàng sau QR:", err);
       alert(err.response?.data?.message || "Có lỗi khi tạo đơn hàng sau thanh toán!");
     }
+  };
+
+  const handleDownloadBill = async () => {
+    await generateInvoice(billDetails.orderCode, billDetails.shopName, billDetails.shopAddress);
+    setShowBillModal(false);
+    setOrderItems([]);
+    setSelectedShop("");
+    setSelectedWarehouse("");
+    setPhone("");
+    setName("");
+    setCusId(null);
+    setSuggest([]);
   };
 
   const filteredProducts = products.filter((product) =>
@@ -494,6 +586,70 @@ const OrderCreate = () => {
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
           >
             Đã thanh toán
+          </button>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={showBillModal}
+        onRequestClose={() => setShowBillModal(false)}
+        contentLabel="Bill Preview"
+        className="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto mt-20"
+      >
+        <h2 className="text-xl font-semibold mb-4 text-center">Chi tiết hóa đơn</h2>
+        <div className="mb-4 max-h-96 overflow-y-auto">
+          <p><strong>Cửa hàng:</strong> {billDetails.shopName}</p>
+          <p><strong>Địa chỉ:</strong> {billDetails.shopAddress}</p>
+          <p><strong>Mã đơn hàng:</strong> {billDetails.orderCode}</p>
+          <p><strong>Ngày:</strong> Tuesday, July 22, 2025</p>
+          <p><strong>Giờ:</strong> 05:08 PM</p>
+          <p><strong>Khách hàng:</strong> {name}</p>
+          <p><strong>Số điện thoại:</strong> {phone}</p>
+          <p><strong>Phương thức thanh toán:</strong> {paymentMethod}</p>
+          <h3 className="font-semibold mt-2">Sản phẩm:</h3>
+          {orderItems.length > 0 ? (
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="border p-2">Sản phẩm</th>
+                  <th className="border p-2">Số lượng</th>
+                  <th className="border p-2">Đơn giá</th>
+                  <th className="border p-2">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderItems.map((item, index) => (
+                  <tr key={index}>
+                    <td className="border p-2">{item.product_name}</td>
+                    <td className="border p-2 text-center">{item.quantity}</td>
+                    <td className="border p-2 text-right">{item.price.toLocaleString("vi-VN")} ₫</td>
+                    <td className="border p-2 text-right">{(item.price * item.quantity).toLocaleString("vi-VN")} ₫</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan="3" className="border p-2 font-semibold text-right">Tổng cộng:</td>
+                  <td className="border p-2 text-right">{total.toLocaleString("vi-VN")} ₫</td>
+                </tr>
+              </tfoot>
+            </table>
+          ) : (
+            <p className="text-gray-500">Không có sản phẩm nào được chọn</p>
+          )}
+          <p className="mt-2"><strong>Ghi chú:</strong> Hóa đơn được tạo tự động bởi hệ thống. Vui lòng kiểm tra kỹ thông tin.</p>
+        </div>
+        <div className="flex justify-center space-x-4">
+          <button
+            onClick={() => setShowBillModal(false)}
+            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={handleDownloadBill}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Tải PDF
           </button>
         </div>
       </Modal>

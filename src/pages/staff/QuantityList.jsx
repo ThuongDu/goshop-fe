@@ -56,9 +56,6 @@ const ShopStockList = ({ shopId }) => {
 
   return (
     <div className="w-full text-sm">
-      <div className="bg-white px-5 py-4 shadow-sm">
-        <h1 className="text-2xl font-bold text-blue-800">Tổng tồn kho cửa hàng</h1>
-      </div>
       <div className="mx-5 mb-5 p-6 bg-white rounded-lg shadow-md overflow-x-auto">
         <table className="min-w-full border-collapse">
           <thead>

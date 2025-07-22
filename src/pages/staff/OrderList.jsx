@@ -3,14 +3,13 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 
 const OrderListStaff = () => {
-  const [orders, setOrders]   = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("");
   const token = localStorage.getItem("token");
 
-  /* ─── Lấy danh sách ─── */
   useEffect(() => {
-    (async () => {
+    const fetchOrders = async () => {
       setLoading(true);
       try {
         const url = `http://localhost:3000/api/staff/orders${
@@ -21,11 +20,13 @@ const OrderListStaff = () => {
         });
         setOrders(data);
       } catch (err) {
-        console.error("Lỗi tải đơn:", err);
+        console.error("Lỗi tải đơn hàng:", err);
+        alert("Không thể tải danh sách đơn hàng");
       } finally {
         setLoading(false);
       }
-    })();
+    };
+    fetchOrders();
   }, [token, filterStatus]);
 
   const updateStatus = async (id, newStatus) => {
@@ -39,7 +40,7 @@ const OrderListStaff = () => {
         prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
       );
     } catch (err) {
-      console.error("Lỗi cập nhật:", err);
+      console.error("Lỗi cập nhật trạng thái:", err);
       alert(err.response?.data?.message || "Không thể cập nhật trạng thái");
     }
   };
@@ -47,13 +48,9 @@ const OrderListStaff = () => {
   if (loading) return <p className="text-center mt-8">Đang tải...</p>;
 
   return (
-    <div className="fw-full text-sm">
-      <div className="bg-white px-5 py-4 shadow-sm">
-        <h1 className="text-2xl font-bold text-blue-800">Đơn hàng của tôi</h1>
-      </div>
-
-      {/* Bộ lọc */}
-      <div className="mx-5 mt-4 mb-2 flex items-center">
+    <div className="w-full text-sm">
+      {/* Bộ lọc trạng thái */}
+      <div className="mx-5 mt-4 mb-2 flex items-center gap-2">
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -66,14 +63,13 @@ const OrderListStaff = () => {
         </select>
         <button
           onClick={() => setFilterStatus("")}
-          className="ml-2 px-3 py-1 bg-gray-200 rounded text-sm"
+          className="px-3 py-1 bg-gray-200 rounded text-sm"
         >
           Xóa lọc
         </button>
       </div>
 
-      {/* Bảng */}
-      <div className="mx-5 mb-5 p-6 bg-white rounded-lg shadow-md">
+      <div className="mx-5 mb-5 p-6 bg-white rounded-lg shadow-md overflow-x-auto">
         <table className="min-w-full border-collapse">
           <thead>
             <tr className="bg-blue-800 text-white text-left">
@@ -81,7 +77,9 @@ const OrderListStaff = () => {
               <th className="px-3 py-2">Khách hàng</th>
               <th className="px-3 py-2 text-right">Tổng tiền</th>
               <th className="px-3 py-2 text-right">Thuế</th>
+              <th className="px-3 py-2">Phương thức thanh toán</th>
               <th className="px-3 py-2">Trạng thái</th>
+              <th className="px-3 py-2">Người tạo</th>
               <th className="px-3 py-2">Ngày tạo</th>
             </tr>
           </thead>
@@ -103,8 +101,7 @@ const OrderListStaff = () => {
                 <td className="px-3 py-2 text-right">
                   {Number(o.tax).toLocaleString()}₫
                 </td>
-
-                {/* Dropdown trạng thái */}
+                <td className="px-3 py-2">{o.payment_method || ""}</td>
                 <td className="px-3 py-2 capitalize">
                   {o.status === "thành công" ? (
                     o.status
@@ -124,9 +121,13 @@ const OrderListStaff = () => {
                     </select>
                   )}
                 </td>
-
+                <td className="px-3 py-2">{o.created_by_name || "—"}</td>
                 <td className="px-3 py-2">
-                  {new Date(o.created_at).toLocaleDateString("vi-VN")}
+                  {new Date(o.created_at).toLocaleDateString("vi-VN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })}
                 </td>
               </tr>
             ))}

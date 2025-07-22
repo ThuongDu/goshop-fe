@@ -39,12 +39,8 @@ const OrderDetail = () => {
 
   return (
     <div className="w-full text-sm">
-      <div className="bg-white">
-        <h1 className="text-2xl font-bold text-blue-800 py-5 px-5">🧾 Chi tiết đơn hàng</h1>
-      </div>
 
       <div className="mx-5 my-5 p-6 bg-white rounded-lg shadow-md">
-        {/* Thông tin chung */}
         <div className="mb-4 space-y-1">
           <p><span className="font-semibold">Mã đơn:</span> {info.code}</p>
           <p><span className="font-semibold">Trạng thái:</span> {info.status}</p>
