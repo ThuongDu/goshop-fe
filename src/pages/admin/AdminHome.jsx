@@ -98,6 +98,84 @@ const AdminHome = () => {
             )}
           </div>
 
+          <div className={`rounded-lg ${isParentActive('Quantity') ? 'bg-blue-50' : ''}`}>
+            <button
+              onClick={() => toggleMenu('quantities')}
+              className={`
+                flex items-center justify-between w-full p-3 rounded-lg transition-colors
+                ${isParentActive('Quantity') ? 'text-blue-700 font-medium' : 'hover:bg-gray-100'}
+              `}
+            >
+              <div className="flex items-center">
+                <FiList className="mr-3 text-lg" />
+                <span>Tồn kho</span>
+              </div>
+              {openMenus.quantities || isParentActive('Quantity') ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
+            </button>
+
+            {(openMenus.quantities || isParentActive('Quantity')) && (
+              <div className="ml-8 mt-1 space-y-1">
+                <NavLink
+                  to="Quantity/list"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Danh sách sản phẩm
+                </NavLink>
+                <NavLink
+                  to="Quantity/add"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Nhập kho
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          <div className={`rounded-lg ${isParentActive('StockOut') ? 'bg-blue-50' : ''}`}>
+            <button
+              onClick={() => toggleMenu('stockout')}
+              className={`
+                flex items-center justify-between w-full p-3 rounded-lg transition-colors
+                ${isParentActive('StockOut') ? 'text-blue-700 font-medium' : 'hover:bg-gray-100'}
+              `}
+            >
+              <div className="flex items-center">
+                <FiList className="mr-3 text-lg" />
+                <span>Xuất kho</span>
+              </div>
+              {openMenus.stockout || isParentActive('StockOut') ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
+            </button>
+
+            {(openMenus.stockout || isParentActive('StockOut')) && (
+              <div className="ml-8 mt-1 space-y-1">
+                <NavLink
+                  to="StockOut/list"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Danh sách sản phẩm
+                </NavLink>
+                <NavLink
+                  to="StockOut/add"
+                  className={({ isActive }) => `
+                    block p-2 rounded text-sm transition-colors
+                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
+                  `}
+                >
+                  Xuất kho
+                </NavLink>
+              </div>
+            )}
+          </div>
+
           <div className={`rounded-lg ${isParentActive('Product') ? 'bg-blue-50' : ''}`}>
             <button
               onClick={() => toggleMenu('products')}
@@ -132,45 +210,6 @@ const AdminHome = () => {
                   `}
                 >
                   Thêm sản phẩm
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          <div className={`rounded-lg ${isParentActive('Quantity') ? 'bg-blue-50' : ''}`}>
-            <button
-              onClick={() => toggleMenu('quantities')}
-              className={`
-                flex items-center justify-between w-full p-3 rounded-lg transition-colors
-                ${isParentActive('Quantity') ? 'text-blue-700 font-medium' : 'hover:bg-gray-100'}
-              `}
-            >
-              <div className="flex items-center">
-                <FiList className="mr-3 text-lg" />
-                <span>Số lượng</span>
-              </div>
-              {openMenus.quantities || isParentActive('Quantity') ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
-            </button>
-
-            {(openMenus.quantities || isParentActive('Quantity')) && (
-              <div className="ml-8 mt-1 space-y-1">
-                <NavLink
-                  to="Quantity/list"
-                  className={({ isActive }) => `
-                    block p-2 rounded text-sm transition-colors
-                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
-                  `}
-                >
-                  Danh sách số lượng
-                </NavLink>
-                <NavLink
-                  to="Quantity/add"
-                  className={({ isActive }) => `
-                    block p-2 rounded text-sm transition-colors
-                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
-                  `}
-                >
-                  Thêm số lượng
                 </NavLink>
               </div>
             )}

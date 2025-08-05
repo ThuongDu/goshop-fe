@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 
 const ProductList = () => {
   const navigate = useNavigate();
@@ -190,23 +191,6 @@ const ProductList = () => {
             </select>
           </div>
           
-          <div>
-            <label htmlFor="expiryFilter" className="block text-sm font-medium text-gray-700 mb-1">
-              Hạn sử dụng
-            </label>
-            <select
-              id="expiryFilter"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              value={expiryFilter}
-              onChange={(e) => setExpiryFilter(e.target.value)}
-            >
-              <option value="">Tất cả</option>
-              <option value="expired">Đã hết hạn</option>
-              <option value="nearExpiry">Sắp hết hạn (7 ngày)</option>
-              <option value="valid">Còn hạn</option>
-            </select>
-          </div>
-          
           <div className="flex items-end">
             <button
               onClick={resetFilters}
@@ -229,7 +213,6 @@ const ProductList = () => {
                   <th className="px-2 py-1">Tên</th>
                   <th className="px-2 py-1">Giá</th>
                   <th className="px-2 py-1">Trọng lượng</th>
-                  <th className="px-2 py-1">Hạn SD</th>
                   <th className="px-2 py-1">Hình ảnh</th>
                   <th className="px-2 py-1">Người tạo</th>
                   <th className="px-2 py-1">Ngày tạo</th>
@@ -240,7 +223,6 @@ const ProductList = () => {
                 {filteredProducts.map((p, index) => {
                   const hasDiscount = p.sale_price && p.sale_price > 0;
                   const displayPrice = hasDiscount ? p.sale_price : p.price;
-                  const isExpired = p.expiry_date && new Date(p.expiry_date) < new Date();
                   
                   return (
                     <tr key={p.id} className="border-b border-gray-200 hover:bg-gray-50">
@@ -269,10 +251,6 @@ const ProductList = () => {
                       <td className="px-2 py-1">
                         {formatWeight(p.weight, p.unit)}
                       </td>
-                      <td className={`px-2 py-1 ${isExpired ? 'text-red-600 font-semibold' : ''}`}>
-                        {formatDate(p.expiry_date)}
-                        {isExpired && <span className="block text-xs">(Sắp hết hạn)</span>}
-                      </td>
                       <td className="px-2 py-1">
                         {p.images && p.images.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
@@ -300,14 +278,14 @@ const ProductList = () => {
                           className="text-blue-600 hover:text-blue-800 font-semibold px-1"
                           title="Sửa"
                         >
-                          ✏️
+                          <FaEdit className="inline" />
                         </button>
                         <button
                           onClick={() => handleDelete(p.id)}
                           className="text-red-600 hover:text-red-800 font-semibold px-1"
                           title="Xóa"
                         >
-                          🗑️
+                          <FaTrash className="inline" />
                         </button>
                       </td>
                     </tr>

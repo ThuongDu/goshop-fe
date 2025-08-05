@@ -41,9 +41,7 @@ const AdminStatistics = () => {
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold text-blue-700 mb-2">📊 Thống kê tổng quan</h1>
 
-      {/* Tổng quan */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Tổng đơn" value={stats.total_orders} color="from-blue-500 to-blue-400" />
         <StatCard label="Tổng doanh thu" value={Number(stats.total_revenue).toLocaleString()} suffix="₫" color="from-green-500 to-green-400" />
@@ -51,7 +49,6 @@ const AdminStatistics = () => {
         <StatCard label="Sản phẩm đã bán" value={stats.total_items_sold} color="from-pink-500 to-pink-400" />
       </div>
 
-      {/* Doanh thu theo tháng */}
       <SectionCard title="📅 Doanh thu theo tháng">
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={monthlyRevenue}>
@@ -70,7 +67,6 @@ const AdminStatistics = () => {
         </ResponsiveContainer>
       </SectionCard>
 
-      {/* Top sản phẩm */}
       <SectionCard title="🏆 Top 5 sản phẩm bán chạy">
         <ItemList data={topProducts} render={p => (
           <>
@@ -80,7 +76,6 @@ const AdminStatistics = () => {
         )} />
       </SectionCard>
 
-      {/* Doanh thu theo cửa hàng */}
       <SectionCard title="🏬 Doanh thu theo cửa hàng">
         <ItemList data={revenueByShop} render={s => (
           <>
@@ -90,7 +85,6 @@ const AdminStatistics = () => {
         )} />
       </SectionCard>
 
-      {/* Doanh thu theo nhân viên */}
       <SectionCard title="👨‍💼 Doanh thu theo nhân viên">
         <ItemList data={revenueByStaff} render={s => (
           <>

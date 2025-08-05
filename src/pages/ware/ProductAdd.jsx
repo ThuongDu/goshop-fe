@@ -9,7 +9,6 @@ const ProductAdd = () => {
     weight: '',
     unit: '',
     sale_price: '',
-    expiry_date: '',
     image: null 
   });
   const [uploading, setUploading] = useState(false);
@@ -37,8 +36,7 @@ const ProductAdd = () => {
       formData.append('description', form.description);
       formData.append('weight', form.weight);
       formData.append('unit', form.unit);
-      formData.append('sale_price', form.sale_price || '0'); // Đảm bảo luôn có giá trị
-      formData.append('expiry_date', form.expiry_date);
+      formData.append('sale_price', form.sale_price || '0');
       formData.append('created_by', userId);
       formData.append('updated_by', userId);
       formData.append('image', form.image);
@@ -58,7 +56,6 @@ const ProductAdd = () => {
         weight: '',
         unit: '',
         sale_price: '',
-        expiry_date: '',
         image: null 
       });
       setTimeout(() => setSuccess(''), 3000);
@@ -75,7 +72,6 @@ const ProductAdd = () => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // Hàm định dạng tiền tệ
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('vi-VN', { 
       style: 'currency', 
@@ -85,7 +81,6 @@ const ProductAdd = () => {
 
   return (
     <div className="w-full text-sm">
-
       <div className="flex mx-5 my-5 gap-4">
         <div className="w-full bg-white p-6 rounded-lg shadow-md">
           {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -193,17 +188,6 @@ const ProductAdd = () => {
                       <option value="túi">Túi</option>
                     </select>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-1">Hạn sử dụng</label>
-                  <input
-                    type="date"
-                    name="expiry_date"
-                    value={form.expiry_date}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                  />
                 </div>
               </div>
             </div>

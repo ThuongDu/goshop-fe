@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
-import { FiEdit, FiTrash2, FiSearch, FiPlus } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiSearch } from 'react-icons/fi';
 import { FaUserShield, FaUserTie } from 'react-icons/fa';
 
 const StaffList = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,19 +54,14 @@ const StaffList = () => {
 
     const fetchData = async () => {
       try {
-        const [userResponse, shopResponse] = await Promise.all([
-          axios.get('http://localhost:3000/api/auth/all', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get('http://localhost:3000/api/shops', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-        setUsers(userResponse.data);
-        setFilteredUsers(userResponse.data);
-        setShops(shopResponse.data);
+        const userResponse = await axios.get('http://localhost:3000/api/auth/all', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('User Response:', userResponse.data); // Debug
+        setUsers(userResponse.data || []);
+        setFilteredUsers(userResponse.data || []);
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching data:', err);
         setError('Đã xảy ra lỗi khi lấy dữ liệu.');
       } finally {
         setLoading(false);
@@ -76,6 +70,7 @@ const StaffList = () => {
 
     fetchData();
   }, [navigate]);
+
   useEffect(() => {
     let result = users;
     if (searchTerm) {
@@ -120,27 +115,19 @@ const StaffList = () => {
     }
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   if (error) return <div className="p-4 text-red-600 text-center">{error}</div>;
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Quản lý nhân viên</h1>
-        <Link
-          to="/AdminHome/Staff/add"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center"
-        >
-          <FiPlus className="mr-2" /> Thêm nhân viên
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+    <div className="container mx-auto">
+      <div className="mx-5 my-5 p-6 bg-white rounded-lg shadow-md">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -177,147 +164,143 @@ const StaffList = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="mx-5 my-5 p-6 bg-white rounded-lg shadow-md">
         {currentUsers.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="text-gray-500 text-center my-10">
             Không tìm thấy nhân viên nào phù hợp
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên nhân viên</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điện thoại</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cửa hàng</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vai trò</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+          <table className="w-full table-fixed text-sm">
+            <thead>
+              <tr className="bg-blue-800 text-white text-left border-b border-gray-200">
+                <th className="px-2 py-1 w-[5%]">ID</th>
+                <th className="px-2 py-1 w-[15%]">Tên nhân viên</th>
+                <th className="px-2 py-1 w-[15%]">Điện thoại</th>
+                <th className="px-2 py-1 w-[20%]">Cửa hàng</th>
+                <th className="px-2 py-1 w-[10%]">Vai trò</th>
+                <th className="px-2 py-1 w-[10%]">Ngày tạo</th>
+                <th className="px-2 py-1 w-[10%]">Trạng thái</th>
+                <th className="px-2 py-1 w-[10%]">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentUsers.map((user, index) => (
+                <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50">
+                  <td className="px-2 py-1">{indexOfFirstUser + index + 1}</td>
+                  <td className="px-2 py-1">
+                    <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                    <div className="text-sm text-gray-500">{user.email}</div>
+                  </td>
+                  <td className="px-2 py-1 text-sm text-gray-500">{user.phone || '-'}</td>
+                  <td className="px-2 py-1 text-sm text-gray-500">{user.shop_name || '-'}</td>
+                  <td className="px-2 py-1">
+                    <div className="flex items-center">
+                      {getRoleIcon(user.role)}
+                      <span className="text-sm text-gray-900 capitalize">{user.role}</span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-1 text-sm text-gray-500">
+                    {new Date(user.created_at).toLocaleDateString('vi-VN', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    })}
+                  </td>
+                  <td className="px-2 py-1">{getStatus(user.status)}</td>
+                  <td className="px-2 py-1 text-sm font-medium">
+                    <button
+                      onClick={() => navigate(`/AdminHome/Staff/edit/${user.id}`)}
+                      className="text-blue-600 font-semibold px-1"
+                      title="Sửa"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => confirmDelete(user)}
+                      className="text-red-600 font-semibold px-2"
+                      title="Xóa"
+                    >
+                      🗑️
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentUsers.map((user, index) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{indexOfFirstUser + index + 1}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.phone || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.shop_id ? (shops.find(shop => shop.id === user.shop_id))?.name || '-' : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getRoleIcon(user.role)}
-                        <span className="text-sm text-gray-900 capitalize">{user.role}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(user.created_at).toLocaleDateString('vi-VN')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatus(user.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => navigate(`/AdminHome/Staff/edit/${user.id}`)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                        title="Sửa"
-                      >
-                        <FiEdit className="inline" />
-                      </button>
-                      <button
-                        onClick={() => confirmDelete(user)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Xóa"
-                      >
-                        <FiTrash2 className="inline" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-6">
+            <nav className="inline-flex rounded-md shadow">
+              <button
+                onClick={() => paginate(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-l-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              >
+                &laquo;
+              </button>
+              
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => paginate(pageNum)}
+                    className={`px-3 py-1 border-t border-b border-gray-300 ${currentPage === pageNum ? 'bg-blue-50 text-blue-600 font-medium' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-r-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              >
+                &raquo;
+              </button>
+            </nav>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Xác nhận xóa</h3>
+              <p className="text-gray-600 mb-6">
+                Bạn có chắc muốn xóa nhân viên <span className="font-semibold">{userToDelete?.name}</span>?
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={() => handleDeleteStaff(userToDelete.id)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Phân trang */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-6">
-          <nav className="inline-flex rounded-md shadow">
-            <button
-              onClick={() => paginate(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded-l-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-            >
-              &laquo;
-            </button>
-            
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => paginate(pageNum)}
-                  className={`px-3 py-1 border-t border-b border-gray-300 ${currentPage === pageNum ? 'bg-blue-50 text-blue-600 font-medium' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-
-            <button
-              onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded-r-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-            >
-              &raquo;
-            </button>
-          </nav>
-        </div>
-      )}
-
-      {/* Modal xác nhận xóa */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Xác nhận xóa</h3>
-            <p className="text-gray-600 mb-6">
-              Bạn có chắc muốn xóa nhân viên <span className="font-semibold">{userToDelete?.name}</span>?
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={() => handleDeleteStaff(userToDelete.id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Xóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 
 const WarehouseList = () => {
     const navigate = useNavigate();
@@ -9,49 +10,55 @@ const WarehouseList = () => {
     const [newWarehouse, setNewWarehouse] = useState({ name: '', shop_id: '' });
 
     const token = localStorage.getItem('token');
+
 useEffect(() => {
-    if (!token) {
-      navigate('/');
-      return;
-    }
-    const fetchData = async () => {
-      try {
-        const [whRes, shopRes] = await Promise.all([
-          axios.get('http://localhost:3000/api/warehouses', 
-            { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:3000/api/shops', 
-            { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-        setWarehouses(whRes.data);
-        setShops(shopRes.data);
-      } catch (err) {
-        console.error('Lỗi tải kho:', err);
-      }
-    };
+  if (!token) {
+    navigate('/');
+    return;
+  }
 
-    fetchData();
-  }, [navigate, token]);
-
-  const handleCreate = async () => {
-    if (warehouses.find(w => w.shop_id === newWarehouse.shop_id)) {
-        alert('Mỗi cửa hàng chỉ được có 1 kho!');
-        return;
-    }
-
+  const fetchData = async () => {
     try {
-        await axios.post('http://localhost:3000/api/warehouses', newWarehouse, {
-        headers: { Authorization: `Bearer ${token}` },
-        });
-        alert('Tạo kho thành công!');
-        window.location.reload();
-    } catch (err) {
-        alert('Lỗi: ' + (err.response?.data?.message || 'Không thể tạo kho'));
-    }
-    };
+      const [whRes, shopRes] = await Promise.all([
+        axios.get('http://localhost:3000/api/warehouses', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get('http://localhost:3000/api/shops', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
 
-    const handleDelete = async (warehouseId) => {
-      const confirmDelete = window.confirm('Bạn có chắc muốn xóa kho này không?');
-      if (!confirmDelete) return;
+      setWarehouses(Array.isArray(whRes.data) ? whRes.data : []);
+      setShops(Array.isArray(shopRes.data.data) ? shopRes.data.data : []); // ✅ sửa tại đây
+    } catch (err) {
+      console.error('Lỗi tải kho hoặc cửa hàng:', err);
+    }
+  };
+
+  fetchData();
+}, [navigate, token]);
+
+const handleCreate = async () => {
+  if (!newWarehouse.name || !newWarehouse.shop_id) {
+    alert("Vui lòng nhập đầy đủ thông tin kho.");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    await axios.post('http://localhost:3000/api/warehouses', newWarehouse, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    alert('Tạo kho thành công!');
+    window.location.reload();
+  } catch (err) {
+    alert('Lỗi: ' + (err.response?.data?.message || 'Không thể tạo kho'));
+  }
+};
+
+const handleDelete = async (warehouseId) => {
+  const confirmDelete = window.confirm('Bạn có chắc muốn xóa kho này không?');
+  if (!confirmDelete) return;
 
       try {
         const token = localStorage.getItem('token');
@@ -142,14 +149,14 @@ useEffect(() => {
                   className="text-blue-600 font-semibold px-1"
                   title="Sửa"
                 >
-                  ✏️
+                  <FaEdit className="inline" />
                 </button>
                 <button
                   onClick={() => {handleDelete(w.id)}}
                   className="text-red-600 font-semibold px-1"
                   title="Xóa"
                 >
-                  🗑️
+                  <FaTrash className="inline" />
                 </button>
               </td>
             </tr>

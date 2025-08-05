@@ -19,7 +19,7 @@ function ForgotPasswordPage() {
         phone,
         newPassword,
       });
-      alert("Đặt lại mật khẩu thành công! Giờ bạn có thể đăng nhập bằng mật khẩu mới.");
+      alert("Đặt lại mật khẩu thành công!");
       navigate("/"); 
     } catch (err) {
       console.error(err);

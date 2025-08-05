@@ -23,22 +23,47 @@ const OrderCreate = () => {
   const [qrCodeData, setQrCodeData] = useState("");
   const [showBillModal, setShowBillModal] = useState(false);
   const [billDetails, setBillDetails] = useState({ shopName: "", shopAddress: "", orderCode: "" });
+  const [selectedExpiry, setSelectedExpiry] = useState({});
+  const [error, setError] = useState("");
 
   const token = localStorage.getItem("token");
 
+  const formatCurrency = (num) => (num ? Number(num).toLocaleString("vi-VN") + "₫" : "—");
+  const formatDate = (date) => (date ? new Date(date).toLocaleDateString("vi-VN") : "Không giới hạn");
+  const formatWeight = (weight) => (weight ? Math.round(weight) : "—");
+
+  const total = orderItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+  const tax = total * 0.08;
+  const totalWithTax = total + tax;
+
   useEffect(() => {
-    (async () => {
+    const fetchInitialData = async () => {
       try {
-        const [s, c] = await Promise.all([
+        const [shopsRes, customersRes] = await Promise.all([
           axios.get("http://localhost:3000/api/shops", { headers: { Authorization: `Bearer ${token}` } }),
           axios.get("http://localhost:3000/api/customers", { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        setShops(s.data);
-        setCustomers(c.data);
-      } catch (e) {
-        console.error("Lỗi tải dữ liệu shops/customers:", e);
+        console.log("API shops response:", shopsRes.data); // Debug: Kiểm tra dữ liệu từ API
+        if (Array.isArray(shopsRes.data)) {
+          setShops(shopsRes.data);
+        } else if (shopsRes.data && Array.isArray(shopsRes.data.data)) {
+          setShops(shopsRes.data.data); // Trường hợp API trả về { data: [...] }
+        } else {
+          throw new Error("Dữ liệu cửa hàng không phải là mảng hoặc không hợp lệ");
+        }
+        if (Array.isArray(customersRes.data)) {
+          setCustomers(customersRes.data);
+        } else if (customersRes.data && Array.isArray(customersRes.data.data)) {
+          setCustomers(customersRes.data.data);
+        } else {
+          throw new Error("Dữ liệu khách hàng không phải là mảng hoặc không hợp lệ");
+        }
+      } catch (err) {
+        console.error("Lỗi tải dữ liệu shops/customers:", err);
+        setError("Không thể tải dữ liệu: " + (err.response?.data?.message || err.message));
       }
-    })();
+    };
+    fetchInitialData();
   }, [token]);
 
   useEffect(() => {
@@ -53,13 +78,26 @@ const OrderCreate = () => {
       .get(`http://localhost:3000/api/warehouses/shop/${selectedShop}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((r) => {
-        setWarehouses(r.data);
-        setSelectedWarehouse("");
-        setProducts([]);
-        setOrderItems([]);
+      .then((res) => {
+        console.log("API warehouses response:", res.data); // Debug
+        if (Array.isArray(res.data)) {
+          setWarehouses(res.data);
+          setSelectedWarehouse("");
+          setProducts([]);
+          setOrderItems([]);
+        } else if (res.data && Array.isArray(res.data.data)) {
+          setWarehouses(res.data.data);
+          setSelectedWarehouse("");
+          setProducts([]);
+          setOrderItems([]);
+        } else {
+          throw new Error("Dữ liệu kho không phải là mảng hoặc không hợp lệ");
+        }
       })
-      .catch((err) => console.error("Lỗi load kho:", err));
+      .catch((err) => {
+        console.error("Lỗi load kho:", err);
+        setError("Không thể tải danh sách kho: " + (err.response?.data?.message || err.message));
+      });
   }, [selectedShop, token]);
 
   useEffect(() => {
@@ -72,19 +110,40 @@ const OrderCreate = () => {
       .get(`http://localhost:3000/api/orders/products/${selectedShop}/${selectedWarehouse}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((r) => {
-        const unique = [];
-        const seen = new Set();
-        const now = new Date();
-        for (const item of r.data) {
-          if (!seen.has(item.id) && (!item.expiry_date || new Date(item.expiry_date) >= now)) {
-            unique.push(item);
-            seen.add(item.id);
-          }
+      .then((res) => {
+        console.log("API products response:", res.data); // Debug
+        if (Array.isArray(res.data)) {
+          const unique = [];
+          const seen = new Set();
+          const now = new Date();
+          res.data.forEach((item) => {
+            const key = `${item.id}-${item.expiry_date || "no-expiry"}`;
+            if (!seen.has(key) && item.quantity > 0) {
+              unique.push({ ...item, isExpired: item.expiry_date && new Date(item.expiry_date) < now });
+              seen.add(key);
+            }
+          });
+          setProducts(unique);
+        } else if (res.data && Array.isArray(res.data.data)) {
+          const unique = [];
+          const seen = new Set();
+          const now = new Date();
+          res.data.data.forEach((item) => {
+            const key = `${item.id}-${item.expiry_date || "no-expiry"}`;
+            if (!seen.has(key) && item.quantity > 0) {
+              unique.push({ ...item, isExpired: item.expiry_date && new Date(item.expiry_date) < now });
+              seen.add(key);
+            }
+          });
+          setProducts(unique);
+        } else {
+          throw new Error("Dữ liệu sản phẩm không phải là mảng hoặc không hợp lệ");
         }
-        setProducts(unique);
       })
-      .catch((err) => console.error("Lỗi load SP:", err));
+      .catch((err) => {
+        console.error("Lỗi load sản phẩm:", err);
+        setError("Không thể tải danh sách sản phẩm: " + (err.response?.data?.message || err.message));
+      });
   }, [selectedShop, selectedWarehouse, token]);
 
   useEffect(() => {
@@ -94,7 +153,7 @@ const OrderCreate = () => {
       setName("");
       return;
     }
-    const matches = customers.filter((c) => c.phone.includes(phone));
+    const matches = customers.filter((c) => c.phone && c.phone.includes(phone));
     setSuggest(matches);
     if (matches.length === 1 && matches[0].phone === phone) {
       setCusId(matches[0].id);
@@ -106,13 +165,32 @@ const OrderCreate = () => {
 
   const addItem = (productId) => {
     const product = products.find((p) => p.id === productId);
-    if (product) {
-      const price = product.sale_price > 0 ? product.sale_price : product.price;
-      if (price <= 0) {
-        console.warn(`Giá sản phẩm ID ${productId} không hợp lệ: ${price}`);
-        return;
+    if (!product) return;
+
+    const price = product.sale_price > 0 ? product.sale_price : product.price;
+    if (price < 0) {
+      console.warn(`Giá sản phẩm ID ${productId} không hợp lệ: ${price}`);
+      return;
+    }
+    const now = new Date();
+    const expiryDate = product.expiry_date ? new Date(product.expiry_date) : null;
+    if (expiryDate && expiryDate < now) {
+      alert(`Lô hàng của sản phẩm ID ${productId} đã hết hạn (${formatDate(product.expiry_date)}). Không thể thêm vào đơn!`);
+      return;
+    }
+
+    setOrderItems((prev) => {
+      const existingItem = prev.find(
+        (item) => item.product_id === product.id && item.expiry_date === (selectedExpiry[productId] || product.expiry_date || null)
+      );
+      if (existingItem) {
+        return prev.map((item) =>
+          item.product_id === product.id && item.expiry_date === (selectedExpiry[productId] || product.expiry_date || null)
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
       }
-      setOrderItems((prev) => [
+      return [
         ...prev,
         {
           product_id: product.id,
@@ -121,9 +199,13 @@ const OrderCreate = () => {
           quantity: 1,
           price: price,
           category_id: product.category_id,
+          weight: product.weight,
+          unit: product.unit,
+          expiry_date: selectedExpiry[productId] || product.expiry_date || null,
         },
-      ]);
-    }
+      ];
+    });
+    setSelectedExpiry((prev) => ({ ...prev, [productId]: null }));
   };
 
   const changeItem = (index, field, value) => {
@@ -131,7 +213,9 @@ const OrderCreate = () => {
       const arr = [...prev];
       const item = { ...arr[index] };
       if (field === "quantity") {
-        item.quantity = Math.max(1, value);
+        item.quantity = Math.max(1, Number(value) || 1);
+      } else if (field === "expiry_date") {
+        item.expiry_date = value || null;
       }
       arr[index] = item;
       return arr;
@@ -141,8 +225,6 @@ const OrderCreate = () => {
   const removeItem = (index) => {
     setOrderItems((items) => items.filter((_, i) => i !== index));
   };
-
-  const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   const saveCustomer = async () => {
     if (!phone || !name) return;
@@ -154,15 +236,26 @@ const OrderCreate = () => {
       );
       setCusId(data.customer_id);
       setCustomers((prev) => [...prev, { id: data.customer_id, name, phone }]);
+      setSuggest([]);
     } catch (err) {
       console.error("Lỗi lưu khách hàng:", err);
+      setError("Không thể lưu khách hàng: " + (err.response?.data?.message || err.message));
     }
   };
 
-  const generateInvoice = async (orderCode, shopName = "Không có cửa hàng") => {
+  const generateInvoice = async (orderCode, shopName = "Không có cửa hàng") => {
     const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Ho_Chi_Minh' };
-    const formattedDate = now.toLocaleString('en-US', options).replace(' at ', ' ').replace(':00 ', ' ');
+    const options = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Ho_Chi_Minh",
+    };
+    const formattedDate = now.toLocaleString("en-US", options).replace(" at ", " ").replace(":00 ", " ");
     const latexContent = `
 \\documentclass[a4paper,12pt]{article}
 \\usepackage[utf8]{vietnam}
@@ -201,13 +294,15 @@ const OrderCreate = () => {
       ? orderItems
           .map(
             (item) =>
-              `${item.product_name.replace(/[&%$#_{}]/g, "\\$&")} & ${item.quantity} & ${item.price.toLocaleString("vi-VN")} ₫ & ${(item.price * item.quantity).toLocaleString("vi-VN")} ₫ \\\\`
+              `${item.product_name.replace(/[&%$#_{}]/g, "\\$&")} & ${item.quantity} & ${formatCurrency(item.price)} & ${formatCurrency(item.price * item.quantity)} \\\\`
           )
           .join("\n  ")
       : "\\multicolumn{4}{c}{Không có sản phẩm} \\\\"
   }
   \\midrule
-  \\multicolumn{3}{r}{\\textbf{Tổng cộng:}} & \\textbf{${total.toLocaleString("vi-VN")} ₫} \\\\
+  \\multicolumn{3}{r}{\\textbf{Tổng cộng:}} & \\textbf{${formatCurrency(total)}} \\\\
+  \\multicolumn{3}{r}{\\textbf{Thuế VAT (8%):}} & \\textbf{${formatCurrency(tax)}} \\\\
+  \\multicolumn{3}{r}{\\textbf{Tổng tiền (bao gồm VAT):}} & \\textbf{${formatCurrency(totalWithTax)}} \\\\
   \\bottomrule
 \\end{tabular}
 
@@ -237,37 +332,33 @@ const OrderCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!cusId || !selectedShop || !selectedWarehouse || orderItems.length === 0) {
-      alert("Vui lòng nhập đủ thông tin: khách hàng, cửa hàng, kho và sản phẩm!");
+      setError("Vui lòng nhập đủ thông tin: khách hàng, cửa hàng, kho và sản phẩm!");
       return;
     }
 
     if (!["tiền mặt", "chuyển khoản"].includes(paymentMethod)) {
-      alert("Phương thức thanh toán không hợp lệ!");
+      setError("Phương thức thanh toán không hợp lệ!");
       return;
     }
 
-    console.log("Payload gửi đi:", {
-      customer_id: cusId,
-      shop_id: selectedShop,
-      warehouse_id: selectedWarehouse,
-      items: orderItems,
-      payment_method: paymentMethod,
-    });
-
     if (paymentMethod === "chuyển khoản") {
-      const qrURL = `https://img.vietqr.io/image/MB-0353190026-print.png?amount=${total}&addInfo=THANH+TOAN+DON+HANG&accountName=NGUYEN ANH DU THUONG`;
+      // Chỉ hiển thị modal QR, không tạo đơn hàng ngay
+      const qrURL = `https://img.vietqr.io/image/MB-0353190026-print.png?amount=${totalWithTax}&addInfo=THANH+TOAN+DON+HANG&accountName=NGUYEN ANH DU THUONG`;
       setQrCodeData(qrURL);
       setShowQR(true);
       return;
     }
 
+    // Xử lý cho tiền mặt: Tạo đơn hàng ngay
     try {
       const items = orderItems.map((item) => ({
         product_id: item.product_id,
         product_code: item.product_code,
         product_name: item.product_name,
         quantity: item.quantity,
+        price: item.price,
         category_id: item.category_id,
+        expiry_date: item.expiry_date || undefined,
         warehouse_id: selectedWarehouse,
       }));
 
@@ -279,22 +370,20 @@ const OrderCreate = () => {
           warehouse_id: selectedWarehouse,
           items,
           payment_method: paymentMethod,
+          total: totalWithTax,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log("Response từ server:", res.data);
 
-      // Fetch shop name and address for invoice
       const shop = shops.find((s) => s.id === selectedShop);
       const shopName = shop ? shop.name : "Unknown Shop";
       const shopAddress = shop && shop.address ? shop.address : "Không có địa chỉ";
 
-      // Set bill details and show modal
       setBillDetails({ shopName, shopAddress, orderCode: res.data.code });
       setShowBillModal(true);
     } catch (err) {
       console.error("Lỗi tạo đơn hàng:", err);
-      alert(err.response?.data?.message || "Có lỗi khi tạo đơn hàng!");
+      setError(err.response?.data?.message || "Có lỗi khi tạo đơn hàng!");
     }
   };
 
@@ -305,7 +394,9 @@ const OrderCreate = () => {
         product_code: item.product_code,
         product_name: item.product_name,
         quantity: item.quantity,
+        price: item.price,
         category_id: item.category_id,
+        expiry_date: item.expiry_date || undefined,
         warehouse_id: selectedWarehouse,
       }));
 
@@ -317,28 +408,26 @@ const OrderCreate = () => {
           warehouse_id: selectedWarehouse,
           items,
           payment_method: paymentMethod,
+          total: totalWithTax,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log("Response từ server sau QR:", res.data);
 
-      // Fetch shop name and address for invoice
       const shop = shops.find((s) => s.id === selectedShop);
       const shopName = shop ? shop.name : "Unknown Shop";
       const shopAddress = shop && shop.address ? shop.address : "Không có địa chỉ";
 
-      // Set bill details and show modal
       setBillDetails({ shopName, shopAddress, orderCode: res.data.code });
-      setShowBillModal(true);
       setShowQR(false);
+      setShowBillModal(true);
     } catch (err) {
       console.error("Lỗi tạo đơn hàng sau QR:", err);
-      alert(err.response?.data?.message || "Có lỗi khi tạo đơn hàng sau thanh toán!");
+      setError(err.response?.data?.message || "Có lỗi khi tạo đơn hàng sau thanh toán!");
     }
   };
 
   const handleDownloadBill = async () => {
-    await generateInvoice(billDetails.orderCode, billDetails.shopName, billDetails.shopAddress);
+    await generateInvoice(billDetails.orderCode, billDetails.shopName);
     setShowBillModal(false);
     setOrderItems([]);
     setSelectedShop("");
@@ -353,11 +442,14 @@ const OrderCreate = () => {
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (error) return <p className="text-center mt-8 text-red-500">{error}</p>;
+
   return (
     <div className="w-full text-sm bg-gray-100 min-h-screen p-4">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="w-full md:w-1/2 flex flex-col">
           <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex-grow">
+            {error && <p className="text-red-500 mb-2">{error}</p>}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-gray-700 mb-1">Số điện thoại</label>
@@ -369,7 +461,7 @@ const OrderCreate = () => {
                   placeholder="Nhập số điện thoại"
                 />
                 {suggest.length > 0 && (
-                  <ul className="absolute bg-white border rounded shadow z-10 max-h-40 overflow-y-auto">
+                  <ul className="absolute bg-white border rounded shadow z-10 max-h-40 overflow-y-auto mt-1">
                     {suggest.map((s) => (
                       <li
                         key={s.id}
@@ -403,7 +495,7 @@ const OrderCreate = () => {
               <button
                 type="button"
                 onClick={saveCustomer}
-                className="bg-blue-800 text-white py-1 px-4 rounded-md mb-4"
+                className="bg-blue-800 text-white py-1 px-4 rounded-md mb-4 hover:bg-blue-900"
               >
                 + Lưu khách mới
               </button>
@@ -413,7 +505,7 @@ const OrderCreate = () => {
               {orderItems.length > 0 ? (
                 <div className="space-y-3">
                   {orderItems.map((item, index) => (
-                    <div key={index} className="p-3 border rounded-lg">
+                    <div key={`${item.product_id}-${item.expiry_date || "no-expiry"}`} className="p-3 border rounded-lg">
                       <div className="flex justify-between items-start mb-2">
                         <div className="font-medium">{item.product_name}</div>
                         <button
@@ -424,7 +516,21 @@ const OrderCreate = () => {
                           Xóa
                         </button>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="text-gray-600 text-sm">
+                        Giá: {formatCurrency(item.price)}
+                        {item.sale_price > 0 && (
+                          <span className="text-gray-500 line-through ml-2">
+                            Giá gốc: {formatCurrency(item.sale_price)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-gray-600 text-sm">
+                        Trọng lượng: {formatWeight(item.weight)} {item.unit || ""}
+                      </div>
+                      <div className="text-gray-600 text-sm">
+                        Hạn sử dụng: {formatDate(item.expiry_date)}
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center space-x-2">
                           <button
                             type="button"
@@ -449,9 +555,7 @@ const OrderCreate = () => {
                             +
                           </button>
                         </div>
-                        <div className="text-right">
-                          {(item.price * item.quantity).toLocaleString()}₫
-                        </div>
+                        <div className="text-right">{formatCurrency(item.price * item.quantity)}</div>
                       </div>
                     </div>
                   ))}
@@ -462,9 +566,17 @@ const OrderCreate = () => {
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 sticky bottom-0">
-            <div className="flex justify-between font-bold text-lg mb-3">
+            <div className="flex justify-between font-bold text-lg mb-1">
               <span>Tổng tiền:</span>
-              <span>{total.toLocaleString()}₫</span>
+              <span>{formatCurrency(total)}</span>
+            </div>
+            <div className="flex justify-between text-lg mb-1">
+              <span>Thuế VAT (8%):</span>
+              <span>{formatCurrency(tax)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-lg mb-3">
+              <span>Tổng tiền (bao gồm VAT):</span>
+              <span>{formatCurrency(totalWithTax)}</span>
             </div>
             <div className="mb-3">
               <label className="block text-gray-700 mb-1">Phương thức thanh toán</label>
@@ -515,9 +627,9 @@ const OrderCreate = () => {
                 className="w-full p-2 border border-gray-300 rounded-md"
               >
                 <option value="">-- Chọn cửa hàng --</option>
-                {shops.map((s) => (
+                {Array.isArray(shops) ? shops.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+                )) : <option value="">Không có dữ liệu</option>}
               </select>
             </div>
             <div>
@@ -529,9 +641,9 @@ const OrderCreate = () => {
                 className="w-full p-2 border border-gray-300 rounded-md"
               >
                 <option value="">-- Chọn kho --</option>
-                {warehouses.map((w) => (
+                {Array.isArray(warehouses) ? warehouses.map((w) => (
                   <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
+                )) : <option value="">Không có dữ liệu</option>}
               </select>
             </div>
           </div>
@@ -547,15 +659,43 @@ const OrderCreate = () => {
           </div>
           <div className="grid grid-cols-2 gap-2 max-h-[500px] overflow-y-auto p-2">
             {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="p-2 border border-gray-200 rounded-md hover:bg-blue-50 cursor-pointer"
-                onClick={() => addItem(product.id)}
-              >
-                <div className="font-semibold text-sm line-clamp-1">{product.name}</div>
-                <div className="text-blue-800 font-semibold text-sm">
-                  {(product.sale_price > 0 ? product.sale_price : product.price).toLocaleString()}₫
+              <div key={product.id} className="relative p-2 border border-gray-200 rounded-md hover:bg-blue-50 cursor-pointer">
+                <div
+                  onClick={() => {
+                    setSelectedExpiry((prev) => ({ ...prev, [product.id]: product.expiry_date }));
+                    addItem(product.id);
+                  }}
+                  className="font-semibold text-sm line-clamp-1"
+                >
+                  {product.name} {product.isExpired && <span className="text-red-500 text-xs">(Hết hạn)</span>}
                 </div>
+                <div className="text-blue-800 font-semibold text-sm">
+                  Giá: {formatCurrency(product.sale_price > 0 ? product.sale_price : product.price)}
+                </div>
+                {product.sale_price > 0 && (
+                  <div className="text-gray-500 text-sm line-through">
+                    Giá gốc: {formatCurrency(product.price)}
+                  </div>
+                )}
+                <div className="text-gray-600 text-sm">
+                  Trọng lượng: {formatWeight(product.weight)} {product.unit || ""}
+                </div>
+                <div className="text-gray-600 text-sm">
+                  Hạn sử dụng: {formatDate(product.expiry_date)}
+                </div>
+                <div className="text-gray-600 text-sm">
+                  Số lượng: {product.quantity}
+                </div>
+                <img
+                  src={
+                    product.images && product.images.length > 0
+                      ? `http://localhost:3000/${product.images[0].url}`
+                      : "/images/default-product.jpg"
+                  }
+                  alt={product.name}
+                  className="mt-2 w-16 h-16 object-cover rounded"
+                  onError={(e) => (e.target.src = "/images/default-product.jpg")}
+                />
               </div>
             ))}
           </div>
@@ -565,12 +705,11 @@ const OrderCreate = () => {
         isOpen={showQR}
         onRequestClose={() => setShowQR(false)}
         contentLabel="QR Code Payment"
-        className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto mt-20"
+        className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto"
       >
         <h2 className="text-xl font-semibold mb-4 text-center">Quét mã QR để thanh toán</h2>
-        <div className="text-center mb-2 text-lg font-bold">
-          {total.toLocaleString()}₫
-        </div>
+        <p className="text-center text-sm text-gray-600 mb-4">Vui lòng quét mã QR và xác nhận thanh toán để hoàn tất đơn hàng.</p>
+        <div className="text-center mb-2 text-lg font-bold">{formatCurrency(totalWithTax)}</div>
         <div className="flex justify-center mb-4">
           <img src={qrCodeData} alt="QR VietQR" className="border p-2" />
         </div>
@@ -600,8 +739,8 @@ const OrderCreate = () => {
           <p><strong>Cửa hàng:</strong> {billDetails.shopName}</p>
           <p><strong>Địa chỉ:</strong> {billDetails.shopAddress}</p>
           <p><strong>Mã đơn hàng:</strong> {billDetails.orderCode}</p>
-          <p><strong>Ngày:</strong> Tuesday, July 22, 2025</p>
-          <p><strong>Giờ:</strong> 05:08 PM</p>
+          <p><strong>Ngày:</strong> {new Date().toLocaleDateString("vi-VN")}</p>
+          <p><strong>Giờ:</strong> {new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</p>
           <p><strong>Khách hàng:</strong> {name}</p>
           <p><strong>Số điện thoại:</strong> {phone}</p>
           <p><strong>Phương thức thanh toán:</strong> {paymentMethod}</p>
@@ -618,18 +757,34 @@ const OrderCreate = () => {
               </thead>
               <tbody>
                 {orderItems.map((item, index) => (
-                  <tr key={index}>
-                    <td className="border p-2">{item.product_name}</td>
+                  <tr key={`${item.product_id}-${item.expiry_date || "no-expiry"}`}>
+                    <td className="border p-2">
+                      {item.product_name}
+                      <div className="text-gray-600 text-xs">
+                        Trọng lượng: {formatWeight(item.weight)} {item.unit || ""}
+                      </div>
+                      <div className="text-gray-600 text-xs">
+                        Hạn sử dụng: {formatDate(item.expiry_date)}
+                      </div>
+                    </td>
                     <td className="border p-2 text-center">{item.quantity}</td>
-                    <td className="border p-2 text-right">{item.price.toLocaleString("vi-VN")} ₫</td>
-                    <td className="border p-2 text-right">{(item.price * item.quantity).toLocaleString("vi-VN")} ₫</td>
+                    <td className="border p-2 text-right">{formatCurrency(item.price)}</td>
+                    <td className="border p-2 text-right">{formatCurrency(item.price * item.quantity)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr>
                   <td colSpan="3" className="border p-2 font-semibold text-right">Tổng cộng:</td>
-                  <td className="border p-2 text-right">{total.toLocaleString("vi-VN")} ₫</td>
+                  <td className="border p-2 text-right">{formatCurrency(total)}</td>
+                </tr>
+                <tr>
+                  <td colSpan="3" className="border p-2 font-semibold text-right">Thuế VAT (8%):</td>
+                  <td className="border p-2 text-right">{formatCurrency(tax)}</td>
+                </tr>
+                <tr>
+                  <td colSpan="3" className="border p-2 font-semibold text-right">Tổng tiền (bao gồm VAT):</td>
+                  <td className="border p-2 text-right">{formatCurrency(totalWithTax)}</td>
                 </tr>
               </tfoot>
             </table>

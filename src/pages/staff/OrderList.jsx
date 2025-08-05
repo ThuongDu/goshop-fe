@@ -5,29 +5,40 @@ import axios from "axios";
 const OrderListStaff = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const token = localStorage.getItem("token");
 
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const url = `http://localhost:3000/api/staff/orders?${buildFilterUrl()}`;
+      const { data } = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOrders(data);
+    } catch (err) {
+      console.error("Lỗi tải đơn hàng:", err);
+      alert("Không thể tải danh sách đơn hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        const url = `http://localhost:3000/api/staff/orders${
-          filterStatus ? `?status=${encodeURIComponent(filterStatus)}` : ""
-        }`;
-        const { data } = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setOrders(data);
-      } catch (err) {
-        console.error("Lỗi tải đơn hàng:", err);
-        alert("Không thể tải danh sách đơn hàng");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-  }, [token, filterStatus]);
+    if (token) fetchOrders();
+  }, [token]);
+
+  const buildFilterUrl = () => {
+    const params = new URLSearchParams();
+    if (filterStatus) params.append("status", filterStatus);
+    if (searchKeyword.trim()) params.append("search", searchKeyword.trim());
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
+    return params.toString();
+  };
 
   const updateStatus = async (id, newStatus) => {
     try {
@@ -49,8 +60,8 @@ const OrderListStaff = () => {
 
   return (
     <div className="w-full text-sm">
-      {/* Bộ lọc trạng thái */}
-      <div className="mx-5 mt-4 mb-2 flex items-center gap-2">
+      {/* Bộ lọc */}
+      <div className="mx-5 mt-4 mb-2 flex items-center gap-2 flex-wrap">
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -58,11 +69,45 @@ const OrderListStaff = () => {
         >
           <option value="">-- Lọc theo trạng thái --</option>
           <option value="đang xử lý">Đang xử lý</option>
-          <option value="chờ lấy hàng">Chờ lấy hàng</option>
           <option value="thành công">Thành công</option>
         </select>
+
+        <input
+          type="text"
+          placeholder="Tìm mã đơn, khách hàng, người tạo..."
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          className="border px-3 py-2 rounded-md"
+        />
+
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border px-3 py-2 rounded-md"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border px-3 py-2 rounded-md"
+        />
+
         <button
-          onClick={() => setFilterStatus("")}
+          onClick={fetchOrders}
+          className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+        >
+          Lọc
+        </button>
+
+        <button
+          onClick={() => {
+            setFilterStatus("");
+            setSearchKeyword("");
+            setStartDate("");
+            setEndDate("");
+            fetchOrders();
+          }}
           className="px-3 py-1 bg-gray-200 rounded text-sm"
         >
           Xóa lọc
@@ -77,7 +122,7 @@ const OrderListStaff = () => {
               <th className="px-3 py-2">Khách hàng</th>
               <th className="px-3 py-2 text-right">Tổng tiền</th>
               <th className="px-3 py-2 text-right">Thuế</th>
-              <th className="px-3 py-2">Phương thức thanh toán</th>
+              <th className="px-3 py-2">Thanh toán</th>
               <th className="px-3 py-2">Trạng thái</th>
               <th className="px-3 py-2">Người tạo</th>
               <th className="px-3 py-2">Ngày tạo</th>
@@ -113,9 +158,6 @@ const OrderListStaff = () => {
                     >
                       <option value={o.status}>{o.status}</option>
                       {o.status === "đang xử lý" && (
-                        <option value="chờ lấy hàng">Chờ lấy hàng</option>
-                      )}
-                      {o.status === "chờ lấy hàng" && (
                         <option value="thành công">Thành công</option>
                       )}
                     </select>

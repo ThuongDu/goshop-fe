@@ -25,6 +25,7 @@ import OrderList from "./pages/box/OrderList";
 import OrderAdd from "./pages/box/OrderAdd";
 import OrderDetail from "./pages/box/OrderDetail";
 import WarehouseProduct from "./pages/ware/WarehouseProdut";
+import StockoutPage from "./pages/box/StockOutAdd";
 import EditShop from "./pages/edit/Shop";
 import EditWarehouse from "./pages/edit/Warehouse";
 import EditCategory from "./pages/edit/Category";
@@ -32,13 +33,10 @@ import EditProduct from "./pages/edit/Product";
 
 import QuantityListStaff from "./pages/staff/QuantityList";
 import QuantityAddStaff from "./pages/staff/QuantityAdd";
-import ProductListStaff from "./pages/staff/ProductList";
 import OrderAddStaff from "./pages/staff/OrderAdd";
 import OrderListStaff from "./pages/staff/OrderList";
 import OrderDetailStaff from "./pages/staff/OrderDetail";
-
-
-
+import OvervierStaff from "./pages/admin/StaffOverview";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -81,6 +79,7 @@ function App() {
           <Route path="Customer/list" element={<CustomerList />} />
           <Route path="Orders/list" element={<OrderList />} />
           <Route path="Orders/add" element={<OrderAdd />} />
+          <Route path="StockOut/add" element={<StockoutPage />} />
           <Route path="Orders/detail/:orderId" element={<OrderDetail/>}/>
           <Route path="Warehouse/Product" element={<WarehouseProduct/>}/>
           <Route path="Edit/shop/:id" element={<EditShop />} />
@@ -100,7 +99,7 @@ function App() {
             </PrivateRoute>
           }
         >
-          <Route path="Product/list"  element={<ProductListStaff />} />
+          <Route path="Revenue/Overview" element={<OvervierStaff />} />
           <Route path="Orders/list"   element={<OrderListStaff />} />
           <Route path="Orders/add"    element={<OrderAddStaff />} />
           <Route path="Orders/detail/:orderId" element={<OrderDetailStaff />} />

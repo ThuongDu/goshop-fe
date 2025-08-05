@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-
 const QuantityList = () => {
   const [warehouses, setWarehouses] = useState([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
@@ -17,7 +16,7 @@ const QuantityList = () => {
       setLoadingWarehouses(true);
       try {
         const res = await axios.get('http://localhost:3000/api/warehouses', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         setWarehouses(res.data);
       } catch (err) {
@@ -43,7 +42,28 @@ const QuantityList = () => {
           `http://localhost:3000/api/quantities/group-by-product?warehouseId=${selectedWarehouse}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setData(res.data);
+        const processedData = res.data.reduce((acc, item) => {
+          const key = `${item.product_id}-${item.expiry_details
+            .map(d => d.expiry_date || 'null')
+            .sort()
+            .join('|')}`;
+          if (!acc[key]) {
+            acc[key] = {
+              product_id: item.product_id,
+              product_code: item.product_code,
+              product_name: item.product_name,
+              image_url: item.image_url,
+              category_names: item.category_names,
+              warehouse_name: item.warehouse_name,
+              total_quantity: 0,
+              expiry_details: [],
+            };
+          }
+          acc[key].total_quantity += item.total_quantity;
+          acc[key].expiry_details = item.expiry_details;
+          return acc;
+        }, {});
+        setData(Object.values(processedData).filter(item => item.total_quantity > 0));
       } catch (err) {
         console.error(err);
         setError('❌ Lỗi khi tải dữ liệu');
@@ -54,9 +74,13 @@ const QuantityList = () => {
     fetchData();
   }, [selectedWarehouse, token]);
 
+  const formatDate = (date) => {
+    if (!date) return 'Không có';
+    return new Date(date).toLocaleDateString('vi-VN');
+  };
+
   return (
     <div className="w-full text-sm">
-      {/* Chọn kho */}
       <div className="mx-5 mt-5 p-4 bg-white rounded shadow">
         <label className="block mb-2 font-semibold">Chọn kho:</label>
         {loadingWarehouses ? (
@@ -69,7 +93,9 @@ const QuantityList = () => {
           >
             <option value="">-- Chọn kho --</option>
             {warehouses.map((w) => (
-              <option key={w.id} value={w.id}>{w.name}</option>
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
             ))}
           </select>
         )}
@@ -95,11 +121,12 @@ const QuantityList = () => {
                   <th className="px-2 py-1">Danh mục</th>
                   <th className="px-2 py-1">Kho</th>
                   <th className="px-2 py-1">Tổng SL</th>
+                  <th className="px-2 py-1">Hạn sử dụng</th>
                 </tr>
               </thead>
               <tbody>
                 {data.map((item, idx) => (
-                  <tr key={item.product_id} className="border-b">
+                  <tr key={`${item.product_id}-${item.expiry_details.map(d => d.expiry_date || 'null').join('|')}`} className="border-b">
                     <td className="px-2 py-1">{idx + 1}</td>
                     <td className="px-2 py-1">{item.product_code}</td>
                     <td className="px-2 py-1">{item.product_name}</td>
@@ -110,11 +137,26 @@ const QuantityList = () => {
                           alt={item.product_name}
                           className="w-20 h-20 object-cover border rounded"
                         />
-                      ) : '-'}
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td className="px-2 py-1">{item.category_names}</td>
                     <td className="px-2 py-1">{item.warehouse_name}</td>
-                    <td className="px-2 py-1 text-center">{item.total_quantity}</td>
+                    <td className="px-2 py-1 text-center">{parseInt(item.total_quantity)}</td>
+                    <td className="px-2 py-1">
+                      {Array.isArray(item.expiry_details) && item.expiry_details.length > 0 ? (
+                        item.expiry_details
+                          .filter(detail => detail.quantity > 0)
+                          .map((detail, index) => (
+                            <div key={index}>
+                              {detail.quantity} (HSD: {formatDate(detail.expiry_date)})
+                            </div>
+                          ))
+                      ) : (
+                        '-'
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -125,4 +167,5 @@ const QuantityList = () => {
     </div>
   );
 };
+
 export default QuantityList;

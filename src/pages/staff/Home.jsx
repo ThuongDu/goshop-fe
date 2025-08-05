@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  FiShoppingBag, FiTruck, FiPackage, FiChevronDown, FiChevronRight,
+  FiShoppingBag, FiTruck, FiChevronDown, FiChevronRight,
   FiUser, FiLogOut, FiShoppingCart
 } from 'react-icons/fi';
 import { HiOutlineChartBar } from 'react-icons/hi';
@@ -96,37 +96,6 @@ const HomeStaff = () => {
                   `}
                 >
                   Tạo đơn hàng
-                </NavLink>
-              </div>
-            )}
-          </div>
-
-          {/* Products */}
-          <div className={`rounded-lg ${isParentActive('Product') ? 'bg-blue-50' : ''}`}>
-            <button
-              onClick={() => toggleMenu('products')}
-              className={`
-                flex items-center justify-between w-full p-3 rounded-lg transition-colors
-                ${isParentActive('Product') ? 'text-blue-700 font-medium' : 'hover:bg-gray-100'}
-              `}
-            >
-              <div className="flex items-center">
-                <FiPackage className="mr-3 text-lg" />
-                <span>Sản phẩm</span>
-              </div>
-              {openMenus.products || isParentActive('Product') ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
-            </button>
-
-            {(openMenus.products || isParentActive('Product')) && (
-              <div className="ml-8 mt-1 space-y-1">
-                <NavLink
-                  to="Product/list"
-                  className={({ isActive }) => `
-                    block p-2 rounded text-sm transition-colors
-                    ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}
-                  `}
-                >
-                  Danh sách sản phẩm
                 </NavLink>
               </div>
             )}
